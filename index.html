@@ -458,6 +458,7 @@
   <div class="logo">Zé<span>Bets</span></div>
   <div class="header-actions">
     <span id="header-month" style="font-size:13px;color:var(--muted);">April 2026</span>
+    <button id="refreshBtn" onclick="refreshData()" title="Refresh" style="background:none;border:1px solid var(--border);color:var(--muted2);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:sans-serif;">↻</button>
   </div>
 </header>
 
@@ -1083,6 +1084,61 @@ async function saveBet() {
     saveBtn.disabled = false;
   }
 }
+
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.style.transform = 'rotate(360deg)';
+  btn.style.transition = 'transform 0.5s ease';
+  setTimeout(() => { btn.style.transform = ''; btn.style.transition = ''; }, 500);
+  setLoading(true);
+  try {
+    allBets = await dbGetAll();
+  } catch(e) {
+    console.error('Refresh failed:', e);
+  }
+  setLoading(false);
+  render();
+}
+
+// Pull-to-refresh for mobile
+let touchStartY = 0;
+let pulling = false;
+let pullIndicator = null;
+
+document.addEventListener('touchstart', e => {
+  if (window.scrollY === 0) {
+    touchStartY = e.touches[0].clientY;
+    pulling = true;
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', e => {
+  if (!pulling) return;
+  const dist = e.touches[0].clientY - touchStartY;
+  if (dist > 10 && window.scrollY === 0) {
+    if (!pullIndicator) {
+      pullIndicator = document.createElement('div');
+      pullIndicator.textContent = '↓ Pull to refresh';
+      pullIndicator.style.cssText = 'position:fixed;top:0;left:0;right:0;text-align:center;padding:10px;font-size:13px;color:var(--muted2);background:var(--surface2);z-index:999;transition:opacity 0.2s;';
+      document.body.appendChild(pullIndicator);
+    }
+    pullIndicator.textContent = dist > 70 ? '↑ Release to refresh' : '↓ Pull to refresh';
+    pullIndicator.style.opacity = Math.min(dist / 70, 1);
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (!pulling) return;
+  pulling = false;
+  const dist = e.changedTouches[0].clientY - touchStartY;
+  if (pullIndicator) {
+    pullIndicator.remove();
+    pullIndicator = null;
+  }
+  if (dist > 70 && window.scrollY === 0) {
+    refreshData();
+  }
+}, { passive: true });
 
 loadFromDB();
 </script>
