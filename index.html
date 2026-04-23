@@ -560,6 +560,69 @@
 </div>
 
 <script>
+const SUPABASE_URL = 'https://vgsvhixbvosimiemooiw.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnc3ZoaXhidm9zaW1pZW1vb2l3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzMzMTgsImV4cCI6MjA5MjU0OTMxOH0.a3DiUpZUaOEtuEHg66RSKtcXCiHlN6LiRYkx1TFoPss';
+
+const api = (path, opts={}) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  headers: {
+    'apikey': SUPABASE_ANON,
+    'Authorization': `Bearer ${SUPABASE_ANON}`,
+    'Content-Type': 'application/json',
+    'Prefer': opts.prefer || '',
+    ...opts.headers
+  },
+  ...opts
+});
+
+async function dbGetAll() {
+  const res = await api('bets?select=*&order=date.asc,created_at.asc');
+  if (!res.ok) throw new Error(await res.text());
+  const rows = await res.json();
+  return rows.map(r => ({
+    id: r.id,
+    date: r.date,
+    bet: r.bet,
+    game: r.game,
+    odd: parseFloat(r.odd),
+    stake: parseFloat(r.stake),
+    outcome: r.outcome || '',
+    sport: r.sport || 'basketball'
+  }));
+}
+
+async function dbInsert(entry) {
+  const res = await api('bets', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: JSON.stringify({
+      date: entry.date, bet: entry.bet, game: entry.game,
+      odd: entry.odd, stake: entry.stake, outcome: entry.outcome, sport: entry.sport
+    })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const rows = await res.json();
+  return rows[0];
+}
+
+async function dbUpdate(id, entry) {
+  const res = await api(`bets?id=eq.${id}`, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: JSON.stringify({
+      date: entry.date, bet: entry.bet, game: entry.game,
+      odd: entry.odd, stake: entry.stake, outcome: entry.outcome, sport: entry.sport
+    })
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function dbDelete(id) {
+  const res = await api(`bets?id=eq.${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+const SEED_BALANCE = { "4/2/2026": 35.0 };
+
 const INITIAL_DATA = [
   {date:"4/3/2026",bet:"San Antonio Spurs",game:"Los Angeles Clippers - San Antonio Spurs",odd:2.07,stake:10.00,outcome:"W"},
   {date:"4/3/2026",bet:"Minnesota Timberwolves",game:"Philadelphia 76ers - Minnesota Timberwolves",odd:2.35,stake:15.70,outcome:"L"},
@@ -617,8 +680,6 @@ const INITIAL_DATA = [
   {date:"4/22/2026",bet:"Orlando Magic +9.5",game:"Detroit Pistons - Orlando Magic",odd:1.75,stake:5.00,outcome:""},
 ];
 
-const SEED_BALANCE = { "4/2/2026": 35.0 };
-
 function computeDailyBalances(monthKey) {
   const [y, m] = monthKey.split('-').map(Number);
   const monthBets = allBets.filter(b => {
@@ -642,16 +703,14 @@ function computeDailyBalances(monthKey) {
   });
   let runningBalance = seedKey ? SEED_BALANCE[seedKey] : null;
 
-  const result = [];
-  if (runningBalance !== null) {
-    result.push([seedKey, runningBalance]);
-  } else {
+  if (runningBalance === null) {
     const prevMonthDate = new Date(y, m - 2, 1);
     const prevKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth()+1).padStart(2,'0')}`;
     const prevEntries = computeDailyBalances(prevKey);
     runningBalance = prevEntries.length ? prevEntries[prevEntries.length - 1][1] : 0;
   }
 
+  const result = [];
   for (const day of days) {
     const dayBets = byDay[day];
     let dayPnl = 0;
@@ -665,38 +724,39 @@ function computeDailyBalances(monthKey) {
   return result;
 }
 
-let allBets = loadBets();
+let allBets = [];
 let activeMonth = null;
 let balChart = null, donutChart = null;
+let isLoading = false;
 
-function betKey(b) { return `${b.date}|${b.bet}|${b.game}`; }
-
-function loadBets() {
-  const stored = JSON.parse(localStorage.getItem('zebets_bets') || 'null');
-  const currentSig = JSON.stringify(INITIAL_DATA);
-  const storedSig = localStorage.getItem('zebets_initial_sig');
-
-  if (!stored) {
-    localStorage.setItem('zebets_initial_sig', currentSig);
-    return INITIAL_DATA.slice();
-  }
-  if (storedSig === currentSig) return stored;
-
-  const initialKeys = new Set(INITIAL_DATA.map(betKey));
-  const userAdded = stored.filter(b => !b._placeholder && !initialKeys.has(betKey(b)));
-  const placeholders = stored.filter(b => b._placeholder);
-  const merged = [...INITIAL_DATA, ...userAdded, ...placeholders];
-  localStorage.setItem('zebets_bets', JSON.stringify(merged));
-  localStorage.setItem('zebets_initial_sig', currentSig);
-  return merged;
+function setLoading(on) {
+  isLoading = on;
+  document.getElementById('monthTabs').style.opacity = on ? '0.4' : '1';
+  document.getElementById('statsGrid').style.opacity = on ? '0.4' : '1';
 }
 
-function saveData() {
-  localStorage.setItem('zebets_bets', JSON.stringify(allBets));
-  localStorage.setItem('zebets_initial_sig', JSON.stringify(INITIAL_DATA));
+async function loadFromDB() {
+  setLoading(true);
+  try {
+    const rows = await dbGetAll();
+    if (rows.length === 0) {
+      for (const b of INITIAL_DATA) {
+        await dbInsert(b);
+      }
+      allBets = await dbGetAll();
+    } else {
+      allBets = rows;
+    }
+  } catch(e) {
+    console.error('Failed to load from Supabase:', e);
+    allBets = INITIAL_DATA;
+  }
+  setLoading(false);
+  render();
 }
 
 function getMonths() {
+  if (!allBets.length) return ['2026-04'];
   const months = new Set(allBets.map(b => {
     const d = new Date(b.date);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -711,7 +771,6 @@ function monthLabel(key) {
 
 function betsForMonth(key) {
   return allBets.filter(b => {
-    if (b._placeholder) return false;
     const d = new Date(b.date);
     const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     return k === key;
@@ -731,19 +790,12 @@ function renderTabs() {
 
   tabs.innerHTML = months.map(m =>
     `<button class="tab-btn${m===activeMonth?' active':''}" onclick="selectMonth('${m}')">${monthLabel(m)}</button>`
-  ).join('') + `<button class="add-month-btn" onclick="addMonth('${nextKey}', '${nextLabel}')">+ ${nextLabel}</button>`;
+  ).join('') + `<button class="add-month-btn" onclick="addMonth('${nextKey}')">+ ${nextLabel}</button>`;
 
   document.getElementById('header-month').textContent = monthLabel(activeMonth);
 }
 
-function addMonth(key, label) {
-  if (!getMonths().includes(key)) {
-    const [y, m] = key.split('-').map(Number);
-    allBets.push({
-      date: `${m}/1/${y}`, bet: '__placeholder__', game: '', odd: 0, stake: 0, outcome: '', sport: 'basketball', _placeholder: true
-    });
-    saveData();
-  }
+function addMonth(key) {
   activeMonth = key;
   render();
 }
@@ -760,20 +812,24 @@ function render() {
   const wins = settled.filter(b => b.outcome === 'W').length;
   const losses = settled.filter(b => b.outcome === 'L').length;
   const wr = settled.length ? ((wins/settled.length)*100).toFixed(1) : '—';
-  const totalStake = bets.reduce((s,b)=>s+b.stake,0);
-  const settledStake = settled.reduce((s,b)=>s+b.stake,0);
-  const settledReturn = settled.filter(b=>b.outcome==='W').reduce((s,b)=>s+(b.stake*b.odd),0);
-  const pnl = settledReturn - settledStake;
+  const totalStake = settled.reduce((s,b)=>s+b.stake,0);
+  const totalReturn = settled.filter(b=>b.outcome==='W').reduce((s,b)=>s+(b.stake*b.odd),0);
+  const pnl = totalReturn - totalStake;
 
   const grid = document.getElementById('statsGrid');
   const balEntries = computeDailyBalances(activeMonth);
   const currentBalance = balEntries.length ? balEntries[balEntries.length-1][1] : null;
-  const startingBalance = balEntries.length ? balEntries[0][1] : null;
+
+  const [sy, sm] = activeMonth.split('-').map(Number);
+  const seedKey = Object.keys(SEED_BALANCE).find(k => {
+    const d = new Date(k); return d.getFullYear()===sy && d.getMonth()+1===sm;
+  });
+  const startingBalance = seedKey ? SEED_BALANCE[seedKey] : (balEntries.length ? balEntries[0][1] : null);
   const balDisplay = currentBalance !== null ? `€${currentBalance.toFixed(2)}` : '—';
   const balColor = currentBalance !== null ? (currentBalance >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted2)';
   const startDisplay = startingBalance !== null ? `Started at €${startingBalance.toFixed(2)}` : 'no data yet';
 
-  const roi = settledStake > 0 ? ((pnl / settledStake) * 100) : null;
+  const roi = totalStake > 0 ? ((pnl / totalStake) * 100) : null;
   const roiDisplay = roi !== null ? `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%` : '—';
   const roiColor = roi === null ? 'var(--muted2)' : roi >= 0 ? 'var(--green)' : 'var(--red)';
 
@@ -801,7 +857,7 @@ function render() {
     <div class="stat-card ${pnl>=0?'green':'red'}">
       <div class="stat-label">P&L</div>
       <div class="stat-value">${pnl>=0?'+':''}€${pnl.toFixed(2)}</div>
-      <div class="stat-sub">Settled stake €${settledStake.toFixed(2)}</div>
+      <div class="stat-sub">Staked €${totalStake.toFixed(2)}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Avg Odd</div>
@@ -920,7 +976,6 @@ function renderTable(bets) {
       : b.outcome==='L'
       ? `<span class="outcome-badge outcome-L">L</span>`
       : `<span class="outcome-badge outcome-pending">Pending</span>`;
-    const realIdx = allBets.indexOf(b);
     return `<tr>
       <td style="color:var(--muted2);white-space:nowrap">${b.date}</td>
       <td style="font-weight:500">${b.bet}</td>
@@ -929,24 +984,28 @@ function renderTable(bets) {
       <td>€${b.stake.toFixed(2)}</td>
       <td>${badge}</td>
       <td style="display:flex;gap:6px;align-items:center;">
-        <button class="delete-row-btn" onclick="openEditModal(${realIdx})" title="Edit" style="color:var(--muted)">✎</button>
-        <button class="delete-row-btn" onclick="deleteBet(${realIdx})" title="Delete">✕</button>
+        <button class="delete-row-btn" onclick="openEditModal('${b.id}')" title="Edit" style="color:var(--muted)">✎</button>
+        <button class="delete-row-btn" onclick="deleteBet('${b.id}')" title="Delete">✕</button>
       </td>
     </tr>`;
   }).join('');
 }
 
-function deleteBet(idx) {
+async function deleteBet(id) {
   if (!confirm('Delete this bet?')) return;
-  allBets.splice(idx, 1);
-  saveData();
-  render();
+  try {
+    await dbDelete(id);
+    allBets = allBets.filter(b => b.id !== id);
+    render();
+  } catch(e) {
+    alert('Error deleting bet: ' + e.message);
+  }
 }
 
-let editingIdx = null;
+let editingId = null;
 
 function openModal() {
-  editingIdx = null;
+  editingId = null;
   document.getElementById('modalTitle').textContent = 'Add New Bet';
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-bet').value = '';
@@ -958,10 +1017,10 @@ function openModal() {
   document.getElementById('modalOverlay').classList.add('open');
 }
 
-function openEditModal(idx) {
-  const b = allBets[idx];
+function openEditModal(id) {
+  const b = allBets.find(x => x.id === id);
   if (!b) return;
-  editingIdx = idx;
+  editingId = id;
   document.getElementById('modalTitle').textContent = 'Edit Bet';
   const parts = b.date.split('/');
   const iso = `${parts[2]}-${String(parts[0]).padStart(2,'0')}-${String(parts[1]).padStart(2,'0')}`;
@@ -977,12 +1036,12 @@ function openEditModal(idx) {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
-  editingIdx = null;
+  editingId = null;
 }
 
 function handleOverlayClick(e) { if (e.target === e.currentTarget) closeModal(); }
 
-function saveBet() {
+async function saveBet() {
   const date = document.getElementById('f-date').value;
   const bet = document.getElementById('f-bet').value.trim();
   const game = document.getElementById('f-game').value.trim();
@@ -998,22 +1057,34 @@ function saveBet() {
 
   const d = new Date(date);
   const formatted = `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
-  const entry = {date: formatted, bet, game: game||'—', odd, stake, outcome, sport};
+  const entry = { date: formatted, bet, game: game||'—', odd, stake, outcome, sport };
 
-  if (editingIdx !== null) {
-    allBets[editingIdx] = entry;
-  } else {
-    allBets.push(entry);
+  const saveBtn = document.querySelector('.btn-save');
+  saveBtn.textContent = 'Saving…';
+  saveBtn.disabled = true;
+
+  try {
+    if (editingId !== null) {
+      await dbUpdate(editingId, entry);
+      const idx = allBets.findIndex(b => b.id === editingId);
+      if (idx !== -1) allBets[idx] = { ...entry, id: editingId };
+    } else {
+      const newRow = await dbInsert(entry);
+      allBets.push({ ...entry, id: newRow.id });
+      const newKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      activeMonth = newKey;
+    }
+    closeModal();
+    render();
+  } catch(e) {
+    alert('Error saving bet: ' + e.message);
+  } finally {
+    saveBtn.textContent = 'Save Bet';
+    saveBtn.disabled = false;
   }
-
-  saveData();
-  const newKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-  activeMonth = newKey;
-  closeModal();
-  render();
 }
 
-render();
+loadFromDB();
 </script>
 </body>
 </html>
