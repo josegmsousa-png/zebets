@@ -20,8 +20,10 @@
   }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
   header { padding: 2rem 2.5rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(13,15,20,0.92); backdrop-filter: blur(16px); z-index: 100; }
-  .logo { font-family: 'DM Serif Display', serif; font-size: 1.7rem; letter-spacing: -0.02em; background: linear-gradient(135deg, #6c63ff, #22d3a3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .logo span { font-style: italic; }
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .logo svg { width: 42px; height: 42px; flex-shrink: 0; }
+  .logo-text { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; font-style: italic; letter-spacing: -0.03em; background: linear-gradient(135deg, #6c63ff, #22d3a3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
+  .logo-text span { font-style: normal; }
   .header-actions { display: flex; gap: 10px; align-items: center; }
   .month-tabs { display: flex; gap: 8px; padding: 1.5rem 2.5rem 0; overflow-x: auto; scrollbar-width: none; }
   .month-tabs::-webkit-scrollbar { display: none; }
@@ -106,7 +108,34 @@
 <div class="loading-bar" id="loadingBar"></div>
 
 <header>
-  <div class="logo">Zé<span>Bets</span></div>
+  <div class="logo">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#f97316"/>
+          <stop offset="100%" style="stop-color:#c2410c"/>
+        </linearGradient>
+        <clipPath id="bc">
+          <circle cx="50" cy="50" r="46"/>
+        </clipPath>
+      </defs>
+      <ellipse cx="50" cy="97" rx="38" ry="5" fill="#000" opacity="0.2"/>
+      <circle cx="50" cy="50" r="46" fill="url(#lg1)"/>
+      <ellipse cx="36" cy="32" rx="13" ry="8" fill="#fff" opacity="0.15" transform="rotate(-20 36 32)"/>
+      <g clip-path="url(#bc)" fill="none" stroke="#7c2d12" stroke-width="2" stroke-linecap="round">
+        <path d="M50 4 C64 22 64 78 50 96"/>
+        <path d="M50 4 C36 22 36 78 50 96"/>
+        <path d="M4 50 C22 36 78 36 96 50"/>
+        <path d="M4 50 C22 64 78 64 96 50"/>
+      </g>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#ea580c" stroke-width="1" opacity="0.4"/>
+    </svg>
+    <div>
+      <div class="logo-text"><span style="font-style:italic">Zé</span>Bets</div>
+      <div style="height:2px;background:linear-gradient(135deg,#6c63ff,#22d3a3);border-radius:2px;margin:3px 0 4px;"></div>
+      <div style="font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:500;">Track · Analyse · Win</div>
+    </div>
+  </div>
   <div class="header-actions">
     <span id="header-month" style="font-size:13px;color:var(--muted);"></span>
     <button id="refreshBtn" onclick="refreshData()" title="Refresh" style="background:none;border:1px solid var(--border);color:var(--muted2);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.5s;font-family:sans-serif;">↻</button>
@@ -418,34 +447,49 @@ function selectMonth(m) { activeMonth = m; render(); }
 
 function render() {
   renderTabs();
-  const bets = betsForMonth(activeMonth);
-  const settled = bets.filter(b => b.outcome === 'W' || b.outcome === 'L');
-  const wins = settled.filter(b => b.outcome === 'W').length;
-  const losses = settled.filter(b => b.outcome === 'L').length;
-  const wr = settled.length ? ((wins/settled.length)*100).toFixed(1) : '—';
-  const totalStake = settled.reduce((s,b)=>s+b.stake,0);
-  const totalReturn = settled.filter(b=>b.outcome==='W').reduce((s,b)=>s+(b.stake*b.odd),0);
-  const pnl = totalReturn - totalStake;
+  const months = getMonths().filter(m => m <= activeMonth);
 
+  // Current month bets (for table + chart)
+  const bets = betsForMonth(activeMonth);
+
+  // Cumulative bets up to and including active month
+  const allUpToNow = allBets.filter(b => {
+    const d = new Date(b.date);
+    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return k <= activeMonth;
+  });
+  const settledAll = allUpToNow.filter(b => b.outcome === 'W' || b.outcome === 'L');
+  const winsAll = settledAll.filter(b => b.outcome === 'W').length;
+  const lossesAll = settledAll.filter(b => b.outcome === 'L').length;
+  const wrAll = settledAll.length ? ((winsAll/settledAll.length)*100).toFixed(1) : '—';
+  const totalStakeAll = settledAll.reduce((s,b)=>s+b.stake,0);
+  const totalReturnAll = settledAll.filter(b=>b.outcome==='W').reduce((s,b)=>s+(b.stake*b.odd),0);
+  const pnlAll = totalReturnAll - totalStakeAll;
+
+  // Balance: current = last entry of active month, started = SEED (always €35)
   const balEntries = computeDailyBalances(activeMonth);
   const currentBalance = balEntries.length ? balEntries[balEntries.length-1][1] : null;
-  const [sy, sm] = activeMonth.split('-').map(Number);
-  const seedKey = Object.keys(SEED_BALANCE).find(k => { const d = new Date(k); return d.getFullYear()===sy && d.getMonth()+1===sm; });
-  const startingBalance = seedKey ? SEED_BALANCE[seedKey] : (balEntries.length ? balEntries[0][1] : null);
+  const startingBalance = SEED_BALANCE[Object.keys(SEED_BALANCE)[0]]; // always 35
   const balDisplay = currentBalance !== null ? '€' + currentBalance.toFixed(2) : '—';
-  const balColor = currentBalance !== null ? (currentBalance >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--muted2)';
-  const startDisplay = startingBalance !== null ? 'Started at €' + startingBalance.toFixed(2) : 'no data yet';
-  const roi = totalStake > 0 ? ((pnl / totalStake) * 100) : null;
+  const balColor = currentBalance !== null ? (currentBalance >= SEED_BALANCE[Object.keys(SEED_BALANCE)[0]] ? 'var(--green)' : 'var(--red)') : 'var(--muted2)';
+  const startDisplay = 'Started at €' + startingBalance.toFixed(2);
+
+  const roi = totalStakeAll > 0 ? ((pnlAll / totalStakeAll) * 100) : null;
   const roiDisplay = roi !== null ? (roi >= 0 ? '+' : '') + roi.toFixed(1) + '%' : '—';
   const roiColor = roi === null ? 'var(--muted2)' : roi >= 0 ? 'var(--green)' : 'var(--red)';
 
+  // Month-only W/L for donut
+  const settled = bets.filter(b => b.outcome === 'W' || b.outcome === 'L');
+  const wins = settled.filter(b => b.outcome === 'W').length;
+  const losses = settled.filter(b => b.outcome === 'L').length;
+
   document.getElementById('statsGrid').innerHTML =
-    '<div class="stat-card accent"><div class="stat-label">Total Bets</div><div class="stat-value" style="color:var(--accent2)">' + bets.length + '</div><div class="stat-sub">' + settled.length + ' settled</div></div>' +
+    '<div class="stat-card accent"><div class="stat-label">Total Bets</div><div class="stat-value" style="color:var(--accent2)">' + allUpToNow.length + '</div><div class="stat-sub">' + settledAll.length + ' settled · ' + monthLabel(activeMonth) + '</div></div>' +
     '<div class="stat-card"><div class="stat-label">Current Balance</div><div class="stat-value" style="color:' + balColor + '">' + balDisplay + '</div><div class="stat-sub">' + startDisplay + '</div></div>' +
-    '<div class="stat-card green"><div class="stat-label">Win Rate</div><div class="stat-value">' + wr + (wr!=='—'?'%':'') + '</div><div class="stat-sub">' + wins + 'W / ' + losses + 'L</div></div>' +
+    '<div class="stat-card green"><div class="stat-label">Win Rate</div><div class="stat-value">' + wrAll + (wrAll!=='—'?'%':'') + '</div><div class="stat-sub">' + winsAll + 'W / ' + lossesAll + 'L (all time)</div></div>' +
     '<div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value" style="color:' + roiColor + '">' + roiDisplay + '</div><div class="stat-sub">return on stake</div></div>' +
-    '<div class="stat-card ' + (pnl>=0?'green':'red') + '"><div class="stat-label">P&L</div><div class="stat-value">' + (pnl>=0?'+':'') + '€' + pnl.toFixed(2) + '</div><div class="stat-sub">Staked €' + totalStake.toFixed(2) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Avg Odd</div><div class="stat-value" style="color:var(--amber)">' + (bets.length ? (bets.reduce((s,b)=>s+b.odd,0)/bets.length).toFixed(2) : '—') + '</div><div class="stat-sub">per bet</div></div>';
+    '<div class="stat-card ' + (pnlAll>=0?'green':'red') + '"><div class="stat-label">P&L</div><div class="stat-value">' + (pnlAll>=0?'+':'') + '€' + pnlAll.toFixed(2) + '</div><div class="stat-sub">Staked €' + totalStakeAll.toFixed(2) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Avg Odd</div><div class="stat-value" style="color:var(--amber)">' + (allUpToNow.length ? (allUpToNow.reduce((s,b)=>s+b.odd,0)/allUpToNow.length).toFixed(2) : '—') + '</div><div class="stat-sub">per bet</div></div>';
 
   renderBalanceChart();
   renderDonutChart(wins, losses, bets.length - settled.length);
