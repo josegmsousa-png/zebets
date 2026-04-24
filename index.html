@@ -10,7 +10,7 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* DARK THEME (default) */
+  /* DARK THEME (default) — original */
   :root, [data-theme="dark"] {
     --bg: #0d0f14; --surface: #13161f; --surface2: #1a1e2a; --surface3: #20253a;
     --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
@@ -23,17 +23,17 @@
     --shadow: none;
   }
 
-  /* LIGHT THEME */
+  /* LIGHT THEME — warm parchment */
   [data-theme="light"] {
-    --bg: #f4f6fb; --surface: #ffffff; --surface2: #f0f2f8; --surface3: #e4e8f4;
-    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
-    --text: #111827; --muted: #6b7280; --muted2: #4b5563;
+    --bg: #f5eedc; --surface: #fdf7eb; --surface2: #ede3c8; --surface3: #e0d4b0;
+    --border: rgba(120,90,30,0.12); --border2: rgba(120,90,30,0.22);
+    --text: #2c1e0f; --muted: #8a7355; --muted2: #5c4a2a;
     --accent: #6c63ff; --accent2: #8b85ff;
-    --green: #059669; --green-bg: rgba(5,150,105,0.08);
-    --red: #dc2626; --red-bg: rgba(220,38,38,0.08);
-    --amber: #d97706;
-    --header-bg: rgba(244,246,251,0.95);
-    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --green: #1a7a5e; --green-bg: rgba(26,122,94,0.1);
+    --red: #c0392b; --red-bg: rgba(192,57,43,0.1);
+    --amber: #b8620a;
+    --header-bg: rgba(245,238,220,0.95);
+    --shadow: 0 1px 4px rgba(100,70,20,0.1);
   }
 
   /* THEME TOGGLE BUTTON */
@@ -45,7 +45,7 @@
   }
   .theme-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  --radius-sm: 10px; --radius: 16px; --radius-lg: 22px; --radius-xl: 28px;
+  :root { --radius-sm: 10px; --radius: 16px; --radius-lg: 22px; --radius-xl: 28px; }
 
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; transition: background 0.3s, color 0.3s; }
   header { padding: 1rem 2.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--header-bg); backdrop-filter: blur(16px); z-index: 100; box-shadow: var(--shadow); }
