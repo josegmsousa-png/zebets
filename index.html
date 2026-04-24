@@ -627,7 +627,11 @@ function betPnl(b) {
 function renderTable(bets) {
   const tbody = document.getElementById('betsBody');
   const empty = document.getElementById('emptyState');
-  const sorted = [...bets].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const sorted = [...bets].sort((a, b) => {
+    const dateDiff = new Date(b.date) - new Date(a.date);
+    if (dateDiff !== 0) return dateDiff;
+    return a.game.localeCompare(b.game);
+  });
   if (!sorted.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   tbody.innerHTML = sorted.map(b => {
