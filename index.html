@@ -146,12 +146,7 @@
   <div class="bets-card">
     <div class="bets-header">
       <div class="bets-title">Bet History</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button id="filterGameBtn" onclick="toggleGameFilter()" title="Group by game" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted2);padding:7px 14px;border-radius:50px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;">
-          ⚽ Group by game
-        </button>
-        <button class="add-btn" onclick="openModal()"><span class="plus-icon">+</span> Add Bet</button>
-      </div>
+      <button class="add-btn" onclick="openModal()"><span class="plus-icon">+</span> Add Bet</button>
     </div>
     <div style="overflow-x:auto;">
       <table>
@@ -632,21 +627,6 @@ function betPnl(b) {
   return '<span style="color:var(--red);font-weight:600;font-size:13px;">−€' + b.stake.toFixed(2) + '</span>';
 }
 
-let groupByGame = false;
-
-function toggleGameFilter() {
-  groupByGame = !groupByGame;
-  const btn = document.getElementById('filterGameBtn');
-  if (groupByGame) {
-    btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--accent)';
-    btn.innerHTML = '🏀 Grouped by game';
-  } else {
-    btn.style.background = 'var(--surface2)'; btn.style.color = 'var(--muted2)'; btn.style.borderColor = 'var(--border)';
-    btn.innerHTML = '🏀 Group by game';
-  }
-  renderTable(betsForMonth(activeMonth));
-}
-
 function sportIcon(sport) {
   if (sport==='nfl') return '<span class="sport-icon nfl">🏈</span>';
   if (sport==='other') return '<span class="sport-icon other">⚽</span>';
@@ -684,29 +664,7 @@ function renderTable(bets) {
   });
   if (!sorted.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
-
-  if (!groupByGame) { tbody.innerHTML = sorted.map(b => betRow(b, false)).join(''); return; }
-
-  const groups = {}, groupOrder = [];
-  for (const b of sorted) {
-    const key = b.date + '||' + b.game;
-    if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
-    groups[key].push(b);
-  }
-  let html = '';
-  for (const key of groupOrder) {
-    const group = groups[key];
-    const [date, game] = key.split('||');
-    html += '<tr style="background:var(--surface3)"><td colspan="8" style="padding:8px 14px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;">' +
-      sportIcon(group[0].sport) +
-      '<span>' + game + '</span>' +
-      '<span style="color:var(--muted);font-weight:400">· ' + date + '</span>' +
-      '<span style="margin-left:auto;color:var(--muted);font-weight:400">' + group.length + ' bet' + (group.length>1?'s':'') + '</span>' +
-      '</div></td></tr>';
-    html += group.map((b, i) => betRow(b, i > 0)).join('');
-  }
-  tbody.innerHTML = html;
+  tbody.innerHTML = sorted.map(b => betRow(b, false)).join('');
 }
 
 async function deleteBet(id) {
