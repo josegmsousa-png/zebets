@@ -333,6 +333,7 @@ const INITIAL_DATA = [
 function computeDailyBalances(monthKey) {
   const [y, m] = monthKey.split('-').map(Number);
   const monthBets = allBets.filter(b => {
+    if (b.bet === '__month_placeholder__') return false;
     const d = new Date(b.date);
     return d.getFullYear() === y && d.getMonth() + 1 === m;
   });
@@ -421,6 +422,7 @@ function monthLabel(key) {
 
 function betsForMonth(key) {
   return allBets.filter(b => {
+    if (b.bet === '__month_placeholder__') return false;
     const d = new Date(b.date);
     const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     return k === key;
@@ -442,7 +444,29 @@ function renderTabs() {
   document.getElementById('header-month').textContent = monthLabel(activeMonth);
 }
 
-function addMonth(key) { activeMonth = key; render(); }
+async function addMonth(key) {
+  const months = getMonths();
+  if (!months.includes(key)) {
+    const [y, m] = key.split('-').map(Number);
+    const placeholder = {
+      date: m + '/1/' + y,
+      bet: '__month_placeholder__',
+      game: '—',
+      odd: 0,
+      stake: 0,
+      outcome: '',
+      sport: 'basketball'
+    };
+    try {
+      const newRow = await dbInsert(placeholder);
+      allBets.push({ ...placeholder, id: newRow.id });
+    } catch(e) {
+      console.error('Failed to create month:', e);
+    }
+  }
+  activeMonth = key;
+  render();
+}
 function selectMonth(m) { activeMonth = m; render(); }
 
 function render() {
@@ -454,6 +478,7 @@ function render() {
 
   // Cumulative bets up to and including active month
   const allUpToNow = allBets.filter(b => {
+    if (b.bet === '__month_placeholder__') return false;
     const d = new Date(b.date);
     const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     return k <= activeMonth;
