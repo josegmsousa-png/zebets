@@ -141,7 +141,7 @@
     </div>
     <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Date</th><th>Bet</th><th>Game</th><th>Odd</th><th>Stake (€)</th><th>Outcome</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Bet</th><th>Game</th><th>Odd</th><th>Stake (€)</th><th>Outcome</th><th>P&L</th><th></th></tr></thead>
         <tbody id="betsBody"></tbody>
       </table>
       <div class="empty-state" id="emptyState" style="display:none;">No bets for this month yet.</div>
@@ -492,10 +492,67 @@ function renderDonutChart(wins, losses, pending) {
     ).join('');
 }
 
-function sportIcon(sport) {
-  if (sport==='nfl') return '<span class="sport-icon nfl" title="NFL">🏈</span>';
-  if (sport==='other') return '<span class="sport-icon other" title="Other">⚽</span>';
-  return '<span class="sport-icon basketball" title="Basketball">🏀</span>';
+const NBA_LOGOS = {
+  'atlanta hawks':'ATL','boston celtics':'BOS','brooklyn nets':'BKN','charlotte hornets':'CHA',
+  'chicago bulls':'CHI','cleveland cavaliers':'CLE','dallas mavericks':'DAL','denver nuggets':'DEN',
+  'detroit pistons':'DET','golden state warriors':'GSW','houston rockets':'HOU','indiana pacers':'IND',
+  'los angeles clippers':'LAC','la clippers':'LAC','los angeles lakers':'LAL','la lakers':'LAL',
+  'memphis grizzlies':'MEM','miami heat':'MIA','milwaukee bucks':'MIL','minnesota timberwolves':'MIN',
+  'new orleans pelicans':'NOP','new york knicks':'NYK','oklahoma city thunder':'OKC',
+  'orlando magic':'ORL','philadelphia 76ers':'PHI','phoenix suns':'PHX','portland trail blazers':'POR',
+  'sacramento kings':'SAC','san antonio spurs':'SAS','toronto raptors':'TOR','utah jazz':'UTA',
+  'washington wizards':'WAS'
+};
+
+const NFL_LOGOS = {
+  'arizona cardinals':'ari','atlanta falcons':'atl','baltimore ravens':'bal','buffalo bills':'buf',
+  'carolina panthers':'car','chicago bears':'chi','cincinnati bengals':'cin','cleveland browns':'cle',
+  'dallas cowboys':'dal','denver broncos':'den','detroit lions':'det','green bay packers':'gb',
+  'houston texans':'hou','indianapolis colts':'ind','jacksonville jaguars':'jax','kansas city chiefs':'kc',
+  'las vegas raiders':'lv','los angeles chargers':'lac','los angeles rams':'lar','miami dolphins':'mia',
+  'minnesota vikings':'min','new england patriots':'ne','new orleans saints':'no','new york giants':'nyg',
+  'new york jets':'nyj','philadelphia eagles':'phi','pittsburgh steelers':'pit','san francisco 49ers':'sf',
+  'seattle seahawks':'sea','tampa bay buccaneers':'tb','tennessee titans':'ten','washington commanders':'was'
+};
+
+function getTeamLogo(teamName, sport) {
+  const key = teamName.toLowerCase().trim();
+  if (sport === 'nfl') {
+    const abbr = NFL_LOGOS[key];
+    if (!abbr) return null;
+    return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/' + abbr + '.png&w=40&h=40';
+  }
+  const abbr = NBA_LOGOS[key];
+  if (!abbr) return null;
+  return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/' + abbr + '.png&w=40&h=40';
+}
+
+function teamLogoImg(teamName, sport) {
+  const url = getTeamLogo(teamName, sport);
+  if (!url) return '<div style="width:22px;height:22px;border-radius:50%;background:var(--surface3);flex-shrink:0;"></div>';
+  return '<img src="' + url + '" alt="' + teamName + '" style="width:22px;height:22px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,0.06);flex-shrink:0;" onerror="this.style.display=\'none\'">';
+}
+
+function gameLogos(gameStr, sport) {
+  const parts = gameStr.split(' - ');
+  if (parts.length < 2) return '<div class="game-cell" style="gap:6px">' + gameStr + '</div>';
+  const t1 = parts[0].trim();
+  const t2 = parts.slice(1).join(' - ').trim();
+  return '<div class="game-cell" style="gap:5px;align-items:center;">' +
+    teamLogoImg(t1, sport) +
+    '<span style="color:var(--muted);font-size:11px;margin:0 2px;">vs</span>' +
+    teamLogoImg(t2, sport) +
+    '<span style="margin-left:4px;font-size:12px;color:var(--muted2)">' + t1 + ' — ' + t2 + '</span>' +
+  '</div>';
+}
+
+function betPnl(b) {
+  if (!b.outcome) return '<span style="color:var(--muted);font-size:12px;">—</span>';
+  if (b.outcome === 'W') {
+    const profit = parseFloat(((b.stake * b.odd) - b.stake).toFixed(2));
+    return '<span style="color:var(--green);font-weight:600;font-size:13px;">+€' + profit.toFixed(2) + '</span>';
+  }
+  return '<span style="color:var(--red);font-weight:600;font-size:13px;">−€' + b.stake.toFixed(2) + '</span>';
 }
 
 function renderTable(bets) {
@@ -507,14 +564,15 @@ function renderTable(bets) {
   tbody.innerHTML = sorted.map(b => {
     const badge = b.outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
       : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-      : '<span class="outcome-badge outcome-pending">Pending</span>';
+      : '<span class="outcome-badge outcome-pending">—</span>';
     return '<tr>' +
       '<td style="color:var(--muted2);white-space:nowrap">' + b.date + '</td>' +
       '<td style="font-weight:500">' + b.bet + '</td>' +
-      '<td style="color:var(--muted2);font-size:12.5px"><div class="game-cell">' + sportIcon(b.sport) + b.game + '</div></td>' +
+      '<td>' + gameLogos(b.game, b.sport) + '</td>' +
       '<td style="color:var(--amber)">' + b.odd.toFixed(2) + '</td>' +
       '<td>€' + b.stake.toFixed(2) + '</td>' +
       '<td>' + badge + '</td>' +
+      '<td>' + betPnl(b) + '</td>' +
       '<td style="display:flex;gap:6px;align-items:center;">' +
         '<button class="delete-row-btn" onclick="openEditModal(\'' + b.id + '\')" title="Edit" style="color:var(--muted)">✎</button>' +
         '<button class="delete-row-btn" onclick="deleteBet(\'' + b.id + '\')" title="Delete">✕</button>' +
