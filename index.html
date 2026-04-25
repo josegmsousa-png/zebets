@@ -305,9 +305,17 @@
       </div>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <div style="font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:0.07em;">Legs</div>
       <button onclick="addAccaLeg()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--accent);padding:4px 12px;border-radius:50px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Add Leg</button>
+    </div>
+    <!-- Column headers -->
+    <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;padding:0 0 4px;margin-bottom:2px;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Sport</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Selection</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Game</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Odd</div>
+      <div></div>
     </div>
 
     <div id="accaLegs" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding-right:4px;"></div>
@@ -1156,13 +1164,13 @@ function addAccaLeg() {
   div.id = 'leg-' + id;
   div.style.cssText = 'display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;align-items:center;';
   div.innerHTML =
-    '<select id="leg-sport-'+id+'" style="padding:7px 6px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);font-family:\'DM Sans\',sans-serif;">' +
+    '<select id="leg-sport-'+id+'" style="padding:7px 6px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;font-family:\'DM Sans\',sans-serif;width:100%;cursor:pointer;">' +
       '<option value="basketball">🏀 NBA</option>' +
       '<option value="soccer">⚽ Soccer</option>' +
       '<option value="nfl">🏈 NFL</option>' +
       '<option value="other">🎯 Other</option>' +
     '</select>' +
-    '<input type="text" placeholder="Bet (e.g. Real Madrid)" id="leg-bet-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
+    '<input type="text" placeholder="Selection" id="leg-bet-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
     '<input type="text" placeholder="Game" id="leg-game-'+id+'" style="padding:7px 10px;font-size:13px;">' +
     '<input type="number" step="0.01" placeholder="Odd" id="leg-odd-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
     '<button onclick="removeLeg('+id+')" style="background:var(--red-bg);border:none;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
