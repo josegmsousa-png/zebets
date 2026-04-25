@@ -1185,18 +1185,18 @@ function removeLeg(id) {
 }
 
 function updateAccaSummary() {
-  const legs = document.querySelectorAll('#accaLegs .leg-row');
+  const legs = document.querySelectorAll('#accaLegs > div[id^="leg-"]');
   let combined = 1;
-  let valid = true;
+  let allValid = true;
   legs.forEach(leg => {
     const id = leg.id.replace('leg-','');
     const odd = parseFloat(document.getElementById('leg-odd-'+id)?.value);
     if (!isNaN(odd) && odd > 0) combined *= odd;
-    else valid = false;
+    else allValid = false;
   });
   const stake = parseFloat(document.getElementById('a-stake')?.value);
-  document.getElementById('accaCombinedOdd').textContent = valid ? combined.toFixed(2) : '—';
-  document.getElementById('accaPotentialWin').textContent = (valid && !isNaN(stake)) ? '€' + (stake * combined).toFixed(2) : '—';
+  document.getElementById('accaCombinedOdd').textContent = legs.length && allValid ? combined.toFixed(2) : '—';
+  document.getElementById('accaPotentialWin').textContent = (legs.length && allValid && !isNaN(stake)) ? '€' + (stake * combined).toFixed(2) : '—';
 }
 
 async function saveAcca() {
@@ -1207,7 +1207,7 @@ async function saveAcca() {
   if (!date || isNaN(stake)) { alert('Please fill in Date and Stake.'); return; }
 
   const legs = [];
-  document.querySelectorAll('#accaLegs > div').forEach(leg => {
+  document.querySelectorAll('#accaLegs > div[id^="leg-"]').forEach(leg => {
     const id = leg.id.replace('leg-','');
     const bet = document.getElementById('leg-bet-'+id)?.value.trim();
     const game = document.getElementById('leg-game-'+id)?.value.trim();
