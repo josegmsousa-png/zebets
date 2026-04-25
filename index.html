@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>ZéBets</title>
 
 
@@ -245,7 +248,7 @@
         <label>Sport</label>
         <select id="f-sport">
           <option value="basketball">🏀 Basketball</option>
-          <option value="nfl">🏈 NFL</option>
+          <option value="nfl">🏈 Football</option>
           <option value="soccer">⚽ Soccer</option>
           <option value="other">🎯 Other</option>
         </select>
@@ -284,7 +287,7 @@
 
 <!-- ACCA MODAL -->
 <div class="modal-overlay" id="accaModalOverlay" onclick="handleAccaOverlayClick(event)">
-  <div class="modal" style="max-width:580px;">
+  <div class="modal" style="max-width:680px;width:96%">
     <div class="modal-title">⚡ New Accumulator</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div class="form-group">
@@ -302,7 +305,7 @@
       <button onclick="addAccaLeg()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--accent);padding:4px 12px;border-radius:50px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Add Leg</button>
     </div>
     <!-- Column headers -->
-    <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;padding:0 0 4px;margin-bottom:2px;">
+    <div style="display:grid;grid-template-columns:100px 1fr 1.2fr 65px 28px;gap:8px;padding:0 0 4px;margin-bottom:2px;">
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Sport</div>
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Selection</div>
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Game</div>
@@ -984,7 +987,7 @@ function renderTable(bets) {
         </div>`;
       }).join('');
 
-      mobileHtml += `<div class="bet-card-mobile" style="border-left:3px solid var(--amber);">
+      mobileHtml += `<div class="bet-card-mobile">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="acca-badge">⚡ ${foldName}</span>
@@ -1216,12 +1219,12 @@ function addAccaLeg() {
   const id = accaLegCount;
   const div = document.createElement('div');
   div.id = 'leg-' + id;
-  div.style.cssText = 'display:grid;grid-template-columns:90px 1fr 1fr 70px 28px;gap:8px;align-items:center;';
+  div.style.cssText = 'display:grid;grid-template-columns:100px 1fr 1.2fr 65px 28px;gap:8px;align-items:center;';
   div.innerHTML =
     '<select id="leg-sport-'+id+'" style="padding:7px 6px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;font-family:\'DM Sans\',sans-serif;width:100%;cursor:pointer;">' +
-      '<option value="basketball">🏀 NBA</option>' +
+      '<option value="basketball">🏀 Basketball</option>' +
       '<option value="soccer">⚽ Soccer</option>' +
-      '<option value="nfl">🏈 NFL</option>' +
+      '<option value="nfl">🏈 Football</option>' +
       '<option value="other">🎯 Other</option>' +
     '</select>' +
     '<input type="text" placeholder="Selection" id="leg-bet-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
