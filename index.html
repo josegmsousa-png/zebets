@@ -251,12 +251,8 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Outcome</label>
-        <select id="f-outcome">
-          <option value="">Pending</option>
-          <option value="W">Win (W)</option>
-          <option value="L">Loss (L)</option>
-        </select>
+        <label>Odd</label>
+        <input type="number" id="f-odd" step="0.01" placeholder="1.75">
       </div>
       <div class="form-group full">
         <label>Bet / Selection</label>
@@ -267,12 +263,16 @@
         <input type="text" id="f-game" placeholder="e.g. Lakers - Celtics">
       </div>
       <div class="form-group">
-        <label>Odd</label>
-        <input type="number" id="f-odd" step="0.01" placeholder="1.75">
-      </div>
-      <div class="form-group">
         <label>Stake (€)</label>
         <input type="number" id="f-stake" step="0.5" placeholder="10.00">
+      </div>
+      <div class="form-group" id="outcome-group" style="display:none;">
+        <label>Outcome</label>
+        <select id="f-outcome">
+          <option value="">Pending</option>
+          <option value="W">Win (W)</option>
+          <option value="L">Loss (L)</option>
+        </select>
       </div>
     </div>
     <div class="modal-actions">
@@ -286,7 +286,7 @@
 <div class="modal-overlay" id="accaModalOverlay" onclick="handleAccaOverlayClick(event)">
   <div class="modal" style="max-width:580px;">
     <div class="modal-title">⚡ New Accumulator</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div class="form-group">
         <label>Date</label>
         <input type="date" id="a-date">
@@ -294,14 +294,6 @@
       <div class="form-group">
         <label>Stake (€)</label>
         <input type="number" id="a-stake" step="0.5" placeholder="10.00">
-      </div>
-      <div class="form-group">
-        <label>Outcome</label>
-        <select id="a-outcome">
-          <option value="">Pending</option>
-          <option value="W">Win ✓</option>
-          <option value="L">Loss ✗</option>
-        </select>
       </div>
     </div>
 
@@ -897,59 +889,57 @@ function renderTable(bets) {
     if (rendered.has(b.id)) continue;
 
     if (b.acca_id) {
-      // Get all legs of this acca (from full sorted list)
       const legs = sorted.filter(x => x.acca_id === b.acca_id);
       legs.forEach(l => rendered.add(l.id));
 
-      const isCollapsed = collapsedAccas.has(b.acca_id);
-      const combinedOdd = b.acca_combined_odd || legs.reduce((p,l) => p * l.odd, 1).toFixed(2);
+      const combinedOdd = parseFloat((b.acca_combined_odd || legs.reduce((p,l) => p*l.odd,1)).toFixed(2));
       const stake = b.acca_stake || b.stake;
       const outcome = getAccaOutcome(b.acca_id);
+      const foldName = legs.length === 2 ? 'Double' : legs.length === 3 ? 'Treble' : legs.length + '-Fold';
       const badge = outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
         : outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
         : '<span class="outcome-badge outcome-pending">—</span>';
       const pnl = !outcome ? '<span style="color:var(--muted);font-size:12px;">—</span>'
-        : outcome==='W' ? '<span style="color:var(--green);font-weight:600;">+€' + (stake * combinedOdd - stake).toFixed(2) + '</span>'
-        : '<span style="color:var(--red);font-weight:600;">−€' + parseFloat(stake).toFixed(2) + '</span>';
-      const foldName = legs.length === 2 ? 'Double' : legs.length === 3 ? 'Treble' : legs.length + '-Fold';
+        : outcome==='W' ? '<span style="color:var(--green);font-weight:600;">+€'+(stake*combinedOdd-stake).toFixed(2)+'</span>'
+        : '<span style="color:var(--red);font-weight:600;">−€'+parseFloat(stake).toFixed(2)+'</span>';
 
-      // Acca header row
-      html += `<tr class="acca-header-row">
-        <td style="color:var(--muted2);white-space:nowrap">${b.date}</td>
-        <td><span class="acca-badge">⚡ ${foldName}</span></td>
-        <td colspan="2" style="font-weight:600;">${legs.map(l=>l.bet).join(' · ')}</td>
-        <td style="color:var(--amber);font-weight:700;">${parseFloat(combinedOdd).toFixed(2)}</td>
-        <td>€${parseFloat(stake).toFixed(2)}</td>
-        <td>
-          ${badge}
-        </td>
-        <td>${pnl}</td>
-        <td style="display:flex;gap:4px;align-items:center;">
-          <button class="acca-toggle" onclick="toggleAcca('${b.acca_id}')" title="${isCollapsed?'Expand':'Collapse'}">${isCollapsed?'▶':'▼'}</button>
-          <button class="delete-row-btn" onclick="deleteAcca('${b.acca_id}')" title="Delete acca">✕</button>
-        </td>
+      const totalRows = 1 + legs.length;
+
+      // Header row — sport+bet merged into one colspan=2
+      html += `<tr style="border-bottom:none;">
+        <td style="color:var(--muted2);white-space:nowrap;padding-bottom:2px;">${b.date}</td>
+        <td style="padding-bottom:2px;"><span class="acca-badge">⚡</span></td>
+        <td style="font-weight:500;color:var(--text);padding-bottom:2px;">${foldName}</td>
+        <td style="padding-bottom:2px;"></td>
+        <td style="color:var(--amber);font-weight:700;padding-bottom:2px;">${combinedOdd.toFixed(2)}</td>
+        <td style="padding-bottom:2px;">€${parseFloat(stake).toFixed(2)}</td>
+        <td style="padding-bottom:2px;">${badge}</td>
+        <td style="padding-bottom:2px;">${pnl}</td>
+        <td style="padding-bottom:2px;"><button class="delete-row-btn" onclick="deleteAcca('${b.acca_id}')" title="Delete acca">✕</button></td>
       </tr>`;
 
-      // Leg rows (shown when expanded)
-      if (!isCollapsed) {
-        legs.forEach((leg, i) => {
+      // Leg rows — date empty, only Bet column indented
+      legs.forEach((leg, i) => {
+        const isLast = i === legs.length - 1;
         const legOutcome = leg.outcome;
         const legBadge = legOutcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
           : legOutcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
           : '<span class="outcome-badge outcome-pending">—</span>';
-        html += `<tr class="acca-leg-row">
-          <td style="color:var(--muted);font-size:11px;">leg ${i+1}</td>
-          <td>${sportIcon(leg.sport)}</td>
-          <td style="color:var(--muted2);font-size:12px;">${leg.bet}</td>
-          <td>${gameLogos(leg.game, leg.sport)}</td>
-          <td style="color:var(--amber);font-size:12px;">${leg.odd.toFixed(2)}</td>
-          <td style="color:var(--muted);font-size:12px;">—</td>
-          <td>${legBadge}</td>
-          <td></td>
-          <td><button class="delete-row-btn" onclick="openEditModal('${leg.id}')" title="Edit leg" style="color:var(--muted)">✎</button></td>
+        const pt = 'padding-top:2px;';
+        const pb = isLast ? 'padding-bottom:9px;' : 'padding-bottom:2px;';
+        const border = isLast ? '' : 'border-bottom:none;';
+        html += `<tr style="${border}">
+          <td style="${pt}${pb}color:var(--muted);font-size:12px;">—</td>
+          <td style="${pt}${pb}">${sportIcon(leg.sport)}</td>
+          <td style="${pt}${pb}padding-left:14px;color:var(--muted2);font-size:13px;"><span style="color:var(--amber);margin-right:5px;">›</span>${leg.bet}</td>
+          <td style="${pt}${pb}">${gameLogos(leg.game, leg.sport)}</td>
+          <td style="${pt}${pb}color:var(--muted);font-size:12px;">${leg.odd.toFixed(2)}</td>
+          <td style="${pt}${pb}color:var(--muted);font-size:12px;">—</td>
+          <td style="${pt}${pb}">${legBadge}</td>
+          <td style="${pt}${pb}color:var(--muted);font-size:12px;">—</td>
+          <td style="${pt}${pb}"><button class="delete-row-btn" onclick="openEditModal('${leg.id}')" title="Edit" style="color:var(--muted)">✎</button></td>
         </tr>`;
       });
-      }
     } else {
       // Normal single bet
       rendered.add(b.id);
@@ -959,57 +949,88 @@ function renderTable(bets) {
 
   tbody.innerHTML = html;
 
-  // Mobile cards (singles only for now, accas shown as summary card)
-  mobileBets.innerHTML = sorted.filter(b => !rendered.has(b.id) || !b.acca_id).map(b => {
-    if (b.acca_id && b.acca_leg !== 1) return '';
+  // ── MOBILE CARDS ────────────────────────────────────────────────────────
+  const mobileRendered = new Set();
+  let mobileHtml = '';
+
+  for (const b of sorted) {
+    if (mobileRendered.has(b.id)) continue;
+
     if (b.acca_id) {
       const legs = sorted.filter(x => x.acca_id === b.acca_id);
+      legs.forEach(l => mobileRendered.add(l.id));
+
+      const combinedOdd = parseFloat((b.acca_combined_odd || legs.reduce((p,l) => p*l.odd,1)).toFixed(2));
       const stake = b.acca_stake || b.stake;
-      const combinedOdd = b.acca_combined_odd || legs.reduce((p,l) => p*l.odd,1).toFixed(2);
-      const badge = b.outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-        : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
+      const outcome = getAccaOutcome(b.acca_id);
+      const foldName = legs.length === 2 ? 'Double' : legs.length === 3 ? 'Treble' : legs.length + '-Fold';
+      const badge = outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
+        : outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
         : '<span class="outcome-badge outcome-pending">—</span>';
-      return `<div class="bet-card-mobile" style="border-left:3px solid var(--amber)">
-        <div class="bet-card-mobile-top">
-          <div>
-            <div style="font-weight:600;font-size:14px;"><span class="acca-badge">⚡ ${legs.length}-Fold</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">${legs.map(l=>l.bet).join(' · ')}</div>
-            <div style="font-size:11px;color:var(--muted);">${b.date}</div>
+      const pnl = !outcome ? '<span style="color:var(--muted);font-size:12px;">—</span>'
+        : outcome==='W' ? '<span style="color:var(--green);font-weight:600;">+€'+(stake*combinedOdd-stake).toFixed(2)+'</span>'
+        : '<span style="color:var(--red);font-weight:600;">−€'+parseFloat(stake).toFixed(2)+'</span>';
+
+      const legsHtml = legs.map(leg => {
+        const lo = leg.outcome;
+        const tick = lo==='W' ? '<span style="color:var(--green);font-weight:700;">✓</span>'
+          : lo==='L' ? '<span style="color:var(--red);font-weight:700;">✗</span>'
+          : '<span style="color:var(--muted);">—</span>';
+        return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border);">
+          ${sportIcon(leg.sport)}
+          <span style="flex:1;font-size:12px;color:var(--muted2);">${leg.bet} <span style="color:var(--muted);font-size:11px;">· ${leg.odd.toFixed(2)}</span></span>
+          <span style="font-size:13px;">${tick}</span>
+          <button class="delete-row-btn" onclick="openEditModal('${leg.id}')" style="color:var(--muted);font-size:13px;">✎</button>
+        </div>`;
+      }).join('');
+
+      mobileHtml += `<div class="bet-card-mobile" style="border-left:3px solid var(--amber);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="acca-badge">⚡ ${foldName}</span>
+            <span style="font-size:12px;color:var(--muted);">${b.date}</span>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">${badge}
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${badge}
             <button class="delete-row-btn" onclick="deleteAcca('${b.acca_id}')">✕</button>
           </div>
         </div>
+        ${legsHtml}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid var(--border);">
+          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber);">${combinedOdd.toFixed(2)}</strong> · €${parseFloat(stake).toFixed(2)}</span>
+          ${pnl}
+        </div>
+      </div>`;
+
+    } else {
+      mobileRendered.add(b.id);
+      const badge = b.outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
+        : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
+        : '<span class="outcome-badge outcome-pending">—</span>';
+      const parts = b.game.split(/\s[-–—]\s|\svs\.?\s/i);
+      const gameShort = parts.length >= 2 ? (parts[0].split(' ').pop() + ' vs ' + parts[1].split(' ').pop()) : b.game;
+      mobileHtml += `<div class="bet-card-mobile">
+        <div class="bet-card-mobile-top">
+          <div>
+            <div style="font-weight:600;font-size:14px;">${b.bet}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${sportIcon(b.sport)}${gameShort} · ${b.date}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">${badge}
+            <div class="bet-card-actions">
+              <button class="delete-row-btn" onclick="openEditModal('${b.id}')" style="color:var(--muted)">✎</button>
+              <button class="delete-row-btn" onclick="deleteBet('${b.id}')">✕</button>
+            </div>
+          </div>
+        </div>
         <div class="bet-card-mobile-bottom">
-          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber)">${parseFloat(combinedOdd).toFixed(2)}</strong> · €${parseFloat(stake).toFixed(2)}</span>
-          ${b.outcome==='W' ? '<span style="color:var(--green);font-weight:600;">+€'+(stake*combinedOdd-stake).toFixed(2)+'</span>' : b.outcome==='L' ? '<span style="color:var(--red);font-weight:600;">−€'+parseFloat(stake).toFixed(2)+'</span>' : '<span style="color:var(--muted)">—</span>'}
+          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber)">${b.odd.toFixed(2)}</strong> · €${b.stake.toFixed(2)}</span>
+          ${betPnl(b)}
         </div>
       </div>`;
     }
-    const badge = b.outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-      : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-      : '<span class="outcome-badge outcome-pending">—</span>';
-    const parts = b.game.split(/\s[-–—]\s|\svs\.?\s/i);
-    const gameShort = parts.length >= 2 ? (parts[0].split(' ').pop() + ' vs ' + parts[1].split(' ').pop()) : b.game;
-    return `<div class="bet-card-mobile">
-      <div class="bet-card-mobile-top">
-        <div>
-          <div style="font-weight:600;font-size:14px;">${b.bet}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${sportIcon(b.sport)}${gameShort} · ${b.date}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">${badge}
-          <div class="bet-card-actions">
-            <button class="delete-row-btn" onclick="openEditModal('${b.id}')" style="color:var(--muted)">✎</button>
-            <button class="delete-row-btn" onclick="deleteBet('${b.id}')">✕</button>
-          </div>
-        </div>
-      </div>
-      <div class="bet-card-mobile-bottom">
-        <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber)">${b.odd.toFixed(2)}</strong> · €${b.stake.toFixed(2)}</span>
-        ${betPnl(b)}
-      </div>
-    </div>`;
-  }).join('');
+  }
+
+  mobileBets.innerHTML = mobileHtml || '<div class="empty-state">No bets for this month yet.</div>';
 }
 
 async function deleteBet(id) {
@@ -1030,6 +1051,7 @@ function openModal() {
   document.getElementById('f-stake').value = '';
   document.getElementById('f-outcome').value = '';
   document.getElementById('f-sport').value = 'basketball';
+  document.getElementById('outcome-group').style.display = 'none';
   document.getElementById('modalOverlay').classList.add('open');
 }
 
@@ -1047,7 +1069,8 @@ function openEditModal(id) {
   document.getElementById('f-outcome').value = b.outcome || '';
   document.getElementById('f-sport').value = b.sport || 'basketball';
 
-  // For acca legs, show outcome but as a note that it affects the whole acca
+  document.getElementById('outcome-group').style.display = '';
+  // For acca legs, show outcome but label it clearly
   const outcomeGroup = document.getElementById('f-outcome').closest('.form-group');
   outcomeGroup.style.display = '';
 
@@ -1056,7 +1079,7 @@ function openEditModal(id) {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
-  document.getElementById('f-outcome').closest('.form-group').style.display = '';
+  document.getElementById('outcome-group').style.display = 'none';
   editingId = null;
 }
 function handleOverlayClick(e) { if (e.target===e.currentTarget) closeModal(); }
@@ -1174,10 +1197,9 @@ function openAccaModal() {
   document.getElementById('accaLegs').innerHTML = '';
   document.getElementById('a-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('a-stake').value = '';
-  document.getElementById('a-outcome').value = '';
   document.getElementById('accaCombinedOdd').textContent = '—';
   document.getElementById('accaPotentialWin').textContent = '—';
-  addAccaLeg(); addAccaLeg(); // start with 2 legs
+  addAccaLeg(); addAccaLeg();
   document.getElementById('accaModalOverlay').classList.add('open');
 }
 
@@ -1226,15 +1248,16 @@ function updateAccaSummary() {
     if (!isNaN(odd) && odd > 0) combined *= odd;
     else allValid = false;
   });
+  const roundedCombined = Math.round(combined * 100) / 100;
   const stake = parseFloat(document.getElementById('a-stake')?.value);
-  document.getElementById('accaCombinedOdd').textContent = legs.length && allValid ? combined.toFixed(2) : '—';
-  document.getElementById('accaPotentialWin').textContent = (legs.length && allValid && !isNaN(stake)) ? '€' + (stake * combined).toFixed(2) : '—';
+  document.getElementById('accaCombinedOdd').textContent = legs.length && allValid ? roundedCombined.toFixed(2) : '—';
+  document.getElementById('accaPotentialWin').textContent = (legs.length && allValid && !isNaN(stake)) ? '€' + (stake * roundedCombined).toFixed(2) : '—';
 }
 
 async function saveAcca() {
   const date = document.getElementById('a-date').value;
   const stake = parseFloat(document.getElementById('a-stake').value);
-  const outcome = document.getElementById('a-outcome').value;
+  const outcome = '';
 
   if (!date || isNaN(stake)) { alert('Please fill in Date and Stake.'); return; }
 
@@ -1258,7 +1281,7 @@ async function saveAcca() {
     const accaId = 'acca-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
     const d = new Date(date);
     const formatted = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
-    const combinedOdd = parseFloat(legs.reduce((p,l) => p * l.odd, 1).toFixed(4));
+    const combinedOdd = Math.round(legs.reduce((p,l) => p * l.odd, 1) * 100) / 100;
 
     for (let i = 0; i < legs.length; i++) {
       const entry = {
