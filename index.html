@@ -481,7 +481,7 @@ function computeDailyBalances(monthKey) {
       if (b.acca_id) {
         if (b.acca_leg === 1) {
           const stake = b.acca_stake || b.stake;
-          const combinedOdd = b.acca_combined_odd || b.odd;
+          const combinedOdd = parseFloat((b.acca_combined_odd || b.odd).toFixed(2));
           if (b.outcome === 'W') dayPnl += stake * combinedOdd - stake;
           else if (b.outcome === 'L') dayPnl -= stake;
           else dayPnl -= stake; // pending
@@ -625,7 +625,7 @@ function render() {
   for (const b of allUpToNow) {
     if (b.acca_id && b.acca_leg !== 1) continue; // skip non-first acca legs
     const stake = b.acca_id ? (b.acca_stake || b.stake) : b.stake;
-    const odd = b.acca_id ? (b.acca_combined_odd || b.odd) : b.odd;
+    const odd = b.acca_id ? parseFloat((b.acca_combined_odd || b.odd).toFixed(2)) : b.odd;
     if (b.outcome === 'W' || b.outcome === 'L') {
       totalStakeAll += stake;
       if (b.outcome === 'W') totalReturnAll += stake * odd;
