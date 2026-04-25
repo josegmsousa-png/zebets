@@ -934,6 +934,9 @@ function renderTable(bets) {
       if (!isCollapsed) {
         legs.forEach((leg, i) => {
         const legOutcome = leg.outcome;
+        const legBadge = legOutcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
+          : legOutcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
+          : '<span class="outcome-badge outcome-pending">—</span>';
         html += `<tr class="acca-leg-row">
           <td style="color:var(--muted);font-size:11px;">leg ${i+1}</td>
           <td>${sportIcon(leg.sport)}</td>
@@ -941,13 +944,7 @@ function renderTable(bets) {
           <td>${gameLogos(leg.game, leg.sport)}</td>
           <td style="color:var(--amber);font-size:12px;">${leg.odd.toFixed(2)}</td>
           <td style="color:var(--muted);font-size:12px;">—</td>
-          <td>
-            <span style="display:inline-flex;gap:3px;">
-              <button onclick="setLegOutcome('${leg.id}','W')" style="background:${legOutcome==='W'?'var(--green)':'var(--surface3)'};border:none;color:${legOutcome==='W'?'#fff':'var(--muted)'};padding:2px 7px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">W</button>
-              <button onclick="setLegOutcome('${leg.id}','L')" style="background:${legOutcome==='L'?'var(--red)':'var(--surface3)'};border:none;color:${legOutcome==='L'?'#fff':'var(--muted)'};padding:2px 7px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">L</button>
-              <button onclick="setLegOutcome('${leg.id}','')" style="background:${!legOutcome?'rgba(251,191,36,0.3)':'var(--surface3)'};border:none;color:${!legOutcome?'var(--amber)':'var(--muted)'};padding:2px 7px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">?</button>
-            </span>
-          </td>
+          <td>${legBadge}</td>
           <td></td>
           <td><button class="delete-row-btn" onclick="openEditModal('${leg.id}')" title="Edit leg" style="color:var(--muted)">✎</button></td>
         </tr>`;
@@ -1050,13 +1047,9 @@ function openEditModal(id) {
   document.getElementById('f-outcome').value = b.outcome || '';
   document.getElementById('f-sport').value = b.sport || 'basketball';
 
-  // Hide outcome for acca legs — outcome is derived from all legs
+  // For acca legs, show outcome but as a note that it affects the whole acca
   const outcomeGroup = document.getElementById('f-outcome').closest('.form-group');
-  if (b.acca_id) {
-    outcomeGroup.style.display = 'none';
-  } else {
-    outcomeGroup.style.display = '';
-  }
+  outcomeGroup.style.display = '';
 
   document.getElementById('modalOverlay').classList.add('open');
 }
@@ -1088,9 +1081,9 @@ async function saveBet() {
       const existing = allBets.find(b => b.id === editingId);
       const isAccaLeg = existing && existing.acca_id;
 
-      // For acca legs, preserve acca fields and don't touch outcome
+      // For acca legs, preserve acca fields but allow outcome change
       const updateEntry = isAccaLeg
-        ? { ...existing, bet, game: game||'—', odd, stake: existing.stake, sport }
+        ? { ...existing, bet, game: game||'—', odd, stake: existing.stake, sport, outcome }
         : { ...entry };
 
       await dbUpdate(editingId, updateEntry);
