@@ -402,6 +402,7 @@ function computeDailyBalances(monthKey) {
     for (const b of byDay[day]) {
       if (b.outcome === 'W') dayPnl += b.stake * b.odd - b.stake;
       else if (b.outcome === 'L') dayPnl -= b.stake;
+      else dayPnl -= b.stake; // pending: stake is tied up/spent
     }
     runningBalance = parseFloat((runningBalance + dayPnl).toFixed(2));
     result.push([day, runningBalance]);
@@ -539,6 +540,9 @@ function render() {
   const balDisplay = currentBalance !== null ? '€' + currentBalance.toFixed(2) : '—';
   const balColor = currentBalance !== null ? (currentBalance >= SEED_BALANCE[Object.keys(SEED_BALANCE)[0]] ? 'var(--green)' : 'var(--red)') : 'var(--muted2)';
   const startDisplay = 'Started at €' + startingBalance.toFixed(2);
+  const pendingBets = bets.filter(b => !b.outcome);
+  const pendingStake = pendingBets.reduce((s,b) => s+b.stake, 0);
+  const pendingSub = pendingStake > 0 ? `${startDisplay} · €${pendingStake.toFixed(2)} staked` : startDisplay;
 
   const roi = totalStakeAll > 0 ? ((pnlAll / totalStakeAll) * 100) : null;
   const roiDisplay = roi !== null ? (roi >= 0 ? '+' : '') + roi.toFixed(1) + '%' : '—';
@@ -551,7 +555,7 @@ function render() {
 
   document.getElementById('statsGrid').innerHTML =
     '<div class="stat-card accent"><div class="stat-label">Total Bets</div><div class="stat-value" style="color:var(--accent2)">' + allUpToNow.length + '</div><div class="stat-sub">' + settledAll.length + ' settled · ' + monthLabel(activeMonth) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Current Balance</div><div class="stat-value" style="color:' + balColor + '">' + balDisplay + '</div><div class="stat-sub">' + startDisplay + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Current Balance</div><div class="stat-value" style="color:' + balColor + '">' + balDisplay + '</div><div class="stat-sub">' + pendingSub + '</div></div>' +
     '<div class="stat-card green"><div class="stat-label">Win Rate</div><div class="stat-value">' + wrAll + (wrAll!=='—'?'%':'') + '</div><div class="stat-sub">' + winsAll + 'W / ' + lossesAll + 'L (all time)</div></div>' +
     '<div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value" style="color:' + roiColor + '">' + roiDisplay + '</div><div class="stat-sub">return on stake</div></div>' +
     '<div class="stat-card ' + (pnlAll>=0?'green':'red') + '"><div class="stat-label">P&L</div><div class="stat-value">' + (pnlAll>=0?'+':'') + '€' + pnlAll.toFixed(2) + '</div><div class="stat-sub">Staked €' + totalStakeAll.toFixed(2) + '</div></div>' +
