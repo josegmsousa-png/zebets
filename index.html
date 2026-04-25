@@ -131,6 +131,7 @@
   .sport-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; flex-shrink: 0; margin-right: 5px; vertical-align: middle; }
   .sport-icon.basketball { background: rgba(251,146,60,0.15); }
   .sport-icon.nfl { background: rgba(139,92,246,0.15); }
+  .sport-icon.soccer { background: rgba(34,197,94,0.15); }
   .sport-icon.other { background: rgba(156,163,175,0.12); }
   .game-cell { display: flex; align-items: center; }
   .add-month-btn { background: none; border: 1px dashed var(--border2); color: var(--muted); padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -232,7 +233,8 @@
         <select id="f-sport">
           <option value="basketball">🏀 Basketball</option>
           <option value="nfl">🏈 NFL</option>
-          <option value="other">⚽ Other</option>
+          <option value="soccer">⚽ Soccer</option>
+          <option value="other">🎯 Other</option>
         </select>
       </div>
       <div class="form-group">
@@ -630,28 +632,74 @@ const NFL_LOGOS = {
   'seattle seahawks':'sea','tampa bay buccaneers':'tb','tennessee titans':'ten','washington commanders':'was'
 };
 
+const SOCCER_LOGOS = {
+  // Premier League (England)
+  'arsenal':'arsenal','aston villa':'aston-villa','bournemouth':'bournemouth','brentford':'brentford',
+  'brighton':'brighton','chelsea':'chelsea','crystal palace':'crystal-palace','everton':'everton',
+  'fulham':'fulham','ipswich':'ipswich','leicester':'leicester','liverpool':'liverpool',
+  'manchester city':'manchester-city','manchester united':'manchester-united','newcastle':'newcastle-united',
+  'nottingham forest':'nottingham-forest','southampton':'southampton','tottenham':'tottenham-hotspur',
+  'west ham':'west-ham','wolves':'wolverhampton','wolverhampton':'wolverhampton',
+  // La Liga (Spain)
+  'atletico madrid':'atletico-de-madrid','barcelona':'barcelona','real madrid':'real-madrid',
+  'athletic bilbao':'athletic-club','betis':'real-betis','celta vigo':'celta-vigo',
+  'getafe':'getafe','girona':'girona','las palmas':'las-palmas','leganes':'leganes',
+  'mallorca':'mallorca','osasuna':'osasuna','rayo vallecano':'rayo-vallecano','rayo':'rayo-vallecano',
+  'real sociedad':'real-sociedad','sevilla':'sevilla','espanyol':'espanyol',
+  'valencia':'valencia','valladolid':'valladolid','villarreal':'villarreal','alaves':'alaves',
+  // Bundesliga (Germany)
+  'augsburg':'augsburg','bayer leverkusen':'bayer-leverkusen','leverkusen':'bayer-leverkusen',
+  'bayern munich':'fc-bayern-munchen','bayern':'fc-bayern-munchen','bochum':'vfl-bochum',
+  'borussia dortmund':'borussia-dortmund','dortmund':'borussia-dortmund',
+  'borussia monchengladbach':'borussia-monchengladbach','gladbach':'borussia-monchengladbach',
+  'eintracht frankfurt':'eintracht-frankfurt','frankfurt':'eintracht-frankfurt',
+  'freiburg':'sc-freiburg','heidenheim':'heidenheim','hoffenheim':'hoffenheim',
+  'holstein kiel':'holstein-kiel','mainz':'1.-fsv-mainz-05','rb leipzig':'rb-leipzig',
+  'leipzig':'rb-leipzig','st. pauli':'fc-st.-pauli','pauli':'fc-st.-pauli',
+  'stuttgart':'vfb-stuttgart','union berlin':'1.-fc-union-berlin','werder bremen':'sv-werder-bremen',
+  'wolfsburg':'vfl-wolfsburg',
+  // Ligue 1 (France)
+  'angers':'angers','auxerre':'auxerre','brest':'brest','lens':'rc-lens',
+  'lille':'lille','lyon':'lyon','marseille':'marseille','monaco':'monaco',
+  'montpellier':'montpellier','nantes':'nantes','nice':'nice','paris saint-germain':'paris-saint-germain',
+  'psg':'paris-saint-germain','reims':'reims','rennes':'rennes','saint-etienne':'saint-etienne',
+  'strasbourg':'strasbourg','toulouse':'toulouse','le havre':'le-havre',
+  // Primeira Liga (Portugal)
+  'benfica':'benfica','sporting cp':'sporting-cp','sporting':'sporting-cp',
+  'fc porto':'fc-porto','porto':'fc-porto','braga':'sc-braga','guimaraes':'vitoria-de-guimaraes',
+  'vitoria guimaraes':'vitoria-de-guimaraes','famalicao':'fc-famalicao','farense':'sc-farense',
+  'moreirense':'moreirense','nacional':'cd-nacional','rio ave':'rio-ave',
+  'santa clara':'cd-santa-clara','boavista':'boavista','estrela':'estrela-da-amadora',
+  'estoril':'estoril-praia','gil vicente':'gil-vicente','arouca':'fc-arouca'
+};
+
+function getSoccerLogo(teamName) {
+  const key = teamName.toLowerCase().trim().replace(/\s+/g,' ');
+  if (SOCCER_LOGOS[key]) {
+    return 'https://cdn.ssref.net/req/202504151/tlogo/lg/' + SOCCER_LOGOS[key] + '.png';
+  }
+  const found = Object.keys(SOCCER_LOGOS).find(k => key.includes(k) || k.includes(key));
+  if (found) return 'https://cdn.ssref.net/req/202504151/tlogo/lg/' + SOCCER_LOGOS[found] + '.png';
+  return null;
+}
+
 function getTeamLogo(teamName, sport) {
+  if (sport === 'soccer') return getSoccerLogo(teamName);
   const key = teamName.toLowerCase().trim()
-    .replace(/\s+/g, ' ')         // normalize multiple spaces
-    .replace(/[–—]/g, '-');       // normalize dashes
-
+    .replace(/\s+/g, ' ')
+    .replace(/[–—]/g, '-');
   const logos = sport === 'nfl' ? NFL_LOGOS : NBA_LOGOS;
-
-  // Exact match first
   if (logos[key]) {
     const abbr = logos[key];
     const league = sport === 'nfl' ? 'nfl' : 'nba';
     return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
   }
-
-  // Fuzzy: find a key that the input contains or vice versa
   const found = Object.keys(logos).find(k => key.includes(k) || k.includes(key));
   if (found) {
     const abbr = logos[found];
     const league = sport === 'nfl' ? 'nfl' : 'nba';
     return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
   }
-
   return null;
 }
 
@@ -695,7 +743,8 @@ function betPnl(b) {
 
 function sportIcon(sport) {
   if (sport==='nfl') return '<span class="sport-icon nfl">🏈</span>';
-  if (sport==='other') return '<span class="sport-icon other">⚽</span>';
+  if (sport==='soccer') return '<span class="sport-icon soccer">⚽</span>';
+  if (sport==='other') return '<span class="sport-icon other">🎯</span>';
   return '<span class="sport-icon basketball">🏀</span>';
 }
 
