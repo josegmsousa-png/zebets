@@ -218,7 +218,7 @@
     <div class="bets-header">
       <div class="bets-title">Bet History</div>
       <div style="display:flex;gap:8px;">
-        <button class="add-btn" style="background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);" onclick="openAccaModal()"><span class="plus-icon" style="background:rgba(251,191,36,0.3);">⚡</span> Acca</button>
+        <button class="add-btn" style="background:linear-gradient(135deg,#6c63ff,#22d3a3);border:none;" onclick="openAccaModal()"><span class="plus-icon" style="background:rgba(255,255,255,0.2);">⚡</span> Add Acca</button>
         <button class="add-btn" onclick="openModal()"><span class="plus-icon">+</span> Add Bet</button>
       </div>
     </div>
@@ -904,7 +904,7 @@ function renderTable(bets) {
       const isCollapsed = collapsedAccas.has(b.acca_id);
       const combinedOdd = b.acca_combined_odd || legs.reduce((p,l) => p * l.odd, 1).toFixed(2);
       const stake = b.acca_stake || b.stake;
-      const outcome = b.outcome;
+      const outcome = getAccaOutcome(b.acca_id);
       const badge = outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
         : outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
         : '<span class="outcome-badge outcome-pending">—</span>';
@@ -922,11 +922,6 @@ function renderTable(bets) {
         <td>€${parseFloat(stake).toFixed(2)}</td>
         <td>
           ${badge}
-          <span style="margin-left:6px;display:inline-flex;gap:4px;">
-            <button onclick="setAccaOutcome('${b.acca_id}','W')" style="background:${outcome==='W'?'var(--green)':'var(--surface3)'};border:none;color:${outcome==='W'?'#fff':'var(--muted)'};padding:2px 8px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">W</button>
-            <button onclick="setAccaOutcome('${b.acca_id}','L')" style="background:${outcome==='L'?'var(--red)':'var(--surface3)'};border:none;color:${outcome==='L'?'#fff':'var(--muted)'};padding:2px 8px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">L</button>
-            <button onclick="setAccaOutcome('${b.acca_id}','')" style="background:${!outcome?'var(--amber)':'var(--surface3)'};border:none;color:${!outcome?'#fff':'var(--muted)'};padding:2px 8px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">?</button>
-          </span>
         </td>
         <td>${pnl}</td>
         <td style="display:flex;gap:4px;align-items:center;">
@@ -938,17 +933,25 @@ function renderTable(bets) {
       // Leg rows (shown when expanded)
       if (!isCollapsed) {
         legs.forEach((leg, i) => {
-          html += `<tr class="acca-leg-row">
-            <td style="color:var(--muted);font-size:11px;">leg ${i+1}</td>
-            <td>${sportIcon(leg.sport)}</td>
-            <td style="color:var(--muted2);font-size:12px;">${leg.bet}</td>
-            <td>${gameLogos(leg.game, leg.sport)}</td>
-            <td style="color:var(--amber);font-size:12px;">${leg.odd.toFixed(2)}</td>
-            <td style="color:var(--muted);font-size:12px;">—</td>
-            <td></td><td></td>
-            <td><button class="delete-row-btn" onclick="openEditModal('${leg.id}')" title="Edit leg" style="color:var(--muted)">✎</button></td>
-          </tr>`;
-        });
+        const legOutcome = leg.outcome;
+        html += `<tr class="acca-leg-row">
+          <td style="color:var(--muted);font-size:11px;">leg ${i+1}</td>
+          <td>${sportIcon(leg.sport)}</td>
+          <td style="color:var(--muted2);font-size:12px;">${leg.bet}</td>
+          <td>${gameLogos(leg.game, leg.sport)}</td>
+          <td style="color:var(--amber);font-size:12px;">${leg.odd.toFixed(2)}</td>
+          <td style="color:var(--muted);font-size:12px;">—</td>
+          <td>
+            <span style="display:inline-flex;gap:3px;">
+              <button onclick="setLegOutcome('${leg.id}','W')" style="background:${legOutcome==='W'?'var(--green)':'var(--surface3)'};border:none;color:${legOutcome==='W'?'#fff':'var(--muted)'};padding:2px 7px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">W</button>
+              <button onclick="setLegOutcome('${leg.id}','L')" style="background:${legOutcome==='L'?'var(--red)':'var(--surface3)'};border:none;color:${legOutcome==='L'?'#fff':'var(--muted)'};padding:2px 7px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">L</button>
+              <button onclick="setLegOutcome('${leg.id}','')" style="background:${!legOutcome?'rgba(251,191,36,0.3)':'var(--surface3)'};border:none;color:${!legOutcome?'var(--amber)':'var(--muted)'};padding:2px 7px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">?</button>
+            </span>
+          </td>
+          <td></td>
+          <td><button class="delete-row-btn" onclick="openEditModal('${leg.id}')" title="Edit leg" style="color:var(--muted)">✎</button></td>
+        </tr>`;
+      });
       }
     } else {
       // Normal single bet
@@ -1037,7 +1040,7 @@ function openEditModal(id) {
   const b = allBets.find(x => x.id === id);
   if (!b) return;
   editingId = id;
-  document.getElementById('modalTitle').textContent = 'Edit Bet';
+  document.getElementById('modalTitle').textContent = b.acca_id ? 'Edit Acca Leg' : 'Edit Bet';
   const parts = b.date.split('/');
   document.getElementById('f-date').value = parts[2] + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0');
   document.getElementById('f-bet').value = b.bet;
@@ -1046,10 +1049,23 @@ function openEditModal(id) {
   document.getElementById('f-stake').value = b.stake;
   document.getElementById('f-outcome').value = b.outcome || '';
   document.getElementById('f-sport').value = b.sport || 'basketball';
+
+  // Hide outcome for acca legs — outcome is derived from all legs
+  const outcomeGroup = document.getElementById('f-outcome').closest('.form-group');
+  if (b.acca_id) {
+    outcomeGroup.style.display = 'none';
+  } else {
+    outcomeGroup.style.display = '';
+  }
+
   document.getElementById('modalOverlay').classList.add('open');
 }
 
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editingId = null; }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('f-outcome').closest('.form-group').style.display = '';
+  editingId = null;
+}
 function handleOverlayClick(e) { if (e.target===e.currentTarget) closeModal(); }
 
 async function saveBet() {
@@ -1069,15 +1085,38 @@ async function saveBet() {
   saveBtn.disabled = true;
   try {
     if (editingId !== null) {
-      await dbUpdate(editingId, entry);
-      const idx = allBets.findIndex(b=>b.id===editingId);
-      if (idx !== -1) allBets[idx] = { ...entry, id:editingId };
+      const existing = allBets.find(b => b.id === editingId);
+      const isAccaLeg = existing && existing.acca_id;
+
+      // For acca legs, preserve acca fields and don't touch outcome
+      const updateEntry = isAccaLeg
+        ? { ...existing, bet, game: game||'—', odd, stake: existing.stake, sport }
+        : { ...entry };
+
+      await dbUpdate(editingId, updateEntry);
+      const idx = allBets.findIndex(b => b.id === editingId);
+      if (idx !== -1) allBets[idx] = { ...allBets[idx], ...updateEntry, id: editingId };
+
+      // If acca leg, recalculate combined odd and sync outcome across all legs
+      if (isAccaLeg) {
+        const accaId = existing.acca_id;
+        const legs = allBets.filter(b => b.acca_id === accaId);
+        const newCombinedOdd = parseFloat(legs.reduce((p,l) => p * l.odd, 1).toFixed(4));
+
+        for (const leg of legs) {
+          const legIdx = allBets.findIndex(b => b.id === leg.id);
+          if (legIdx !== -1) allBets[legIdx].acca_combined_odd = newCombinedOdd;
+          await dbUpdate(leg.id, { ...allBets[legIdx], acca_combined_odd: newCombinedOdd });
+        }
+      }
     } else {
       const newRow = await dbInsert(entry);
-      allBets.push({ ...entry, id:newRow.id });
+      allBets.push({ ...entry, id: newRow.id });
       activeMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     }
     closeModal();
+    // Show outcome field again for next time
+    document.getElementById('f-outcome').closest('.form-group').style.display = '';
     render();
   } catch(e) {
     alert('Error saving: ' + e.message);
@@ -1271,6 +1310,25 @@ async function deleteAcca(accaId) {
     allBets = allBets.filter(b => b.acca_id !== accaId);
     render();
   } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function setLegOutcome(legId, outcome) {
+  try {
+    const leg = allBets.find(b => b.id === legId);
+    if (!leg) return;
+    await dbUpdate(legId, { ...leg, outcome });
+    const idx = allBets.findIndex(b => b.id === legId);
+    if (idx !== -1) allBets[idx].outcome = outcome;
+    render();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function getAccaOutcome(accaId) {
+  const legs = allBets.filter(b => b.acca_id === accaId);
+  if (!legs.length) return '';
+  if (legs.every(l => l.outcome === 'W')) return 'W';
+  if (legs.some(l => l.outcome === 'L')) return 'L';
+  return ''; // pending if any leg still pending
 }
 
 async function setAccaOutcome(accaId, outcome) {
