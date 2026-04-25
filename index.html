@@ -211,7 +211,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Bet</th><th>Game</th><th>Odd</th><th>Stake (€)</th><th>Outcome</th><th>P&L</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Sport</th><th>Bet</th><th>Game</th><th>Odd</th><th>Stake (€)</th><th>Outcome</th><th>P&L</th><th></th></tr></thead>
         <tbody id="betsBody"></tbody>
       </table>
       <div class="empty-state" id="emptyState" style="display:none;">No bets for this month yet.</div>
@@ -633,54 +633,51 @@ const NFL_LOGOS = {
 };
 
 const SOCCER_LOGOS = {
-  // Premier League (England)
-  'arsenal':'arsenal','aston villa':'aston-villa','bournemouth':'bournemouth','brentford':'brentford',
-  'brighton':'brighton','chelsea':'chelsea','crystal palace':'crystal-palace','everton':'everton',
-  'fulham':'fulham','ipswich':'ipswich','leicester':'leicester','liverpool':'liverpool',
-  'manchester city':'manchester-city','manchester united':'manchester-united','newcastle':'newcastle-united',
-  'nottingham forest':'nottingham-forest','southampton':'southampton','tottenham':'tottenham-hotspur',
-  'west ham':'west-ham','wolves':'wolverhampton','wolverhampton':'wolverhampton',
-  // La Liga (Spain)
-  'atletico madrid':'atletico-de-madrid','barcelona':'barcelona','real madrid':'real-madrid',
-  'athletic bilbao':'athletic-club','betis':'real-betis','celta vigo':'celta-vigo',
-  'getafe':'getafe','girona':'girona','las palmas':'las-palmas','leganes':'leganes',
-  'mallorca':'mallorca','osasuna':'osasuna','rayo vallecano':'rayo-vallecano','rayo':'rayo-vallecano',
-  'real sociedad':'real-sociedad','sevilla':'sevilla','espanyol':'espanyol',
-  'valencia':'valencia','valladolid':'valladolid','villarreal':'villarreal','alaves':'alaves',
-  // Bundesliga (Germany)
-  'augsburg':'augsburg','bayer leverkusen':'bayer-leverkusen','leverkusen':'bayer-leverkusen',
-  'bayern munich':'fc-bayern-munchen','bayern':'fc-bayern-munchen','bochum':'vfl-bochum',
-  'borussia dortmund':'borussia-dortmund','dortmund':'borussia-dortmund',
-  'borussia monchengladbach':'borussia-monchengladbach','gladbach':'borussia-monchengladbach',
-  'eintracht frankfurt':'eintracht-frankfurt','frankfurt':'eintracht-frankfurt',
-  'freiburg':'sc-freiburg','heidenheim':'heidenheim','hoffenheim':'hoffenheim',
-  'holstein kiel':'holstein-kiel','mainz':'1.-fsv-mainz-05','rb leipzig':'rb-leipzig',
-  'leipzig':'rb-leipzig','st. pauli':'fc-st.-pauli','pauli':'fc-st.-pauli',
-  'stuttgart':'vfb-stuttgart','union berlin':'1.-fc-union-berlin','werder bremen':'sv-werder-bremen',
-  'wolfsburg':'vfl-wolfsburg',
-  // Ligue 1 (France)
-  'angers':'angers','auxerre':'auxerre','brest':'brest','lens':'rc-lens',
-  'lille':'lille','lyon':'lyon','marseille':'marseille','monaco':'monaco',
-  'montpellier':'montpellier','nantes':'nantes','nice':'nice','paris saint-germain':'paris-saint-germain',
-  'psg':'paris-saint-germain','reims':'reims','rennes':'rennes','saint-etienne':'saint-etienne',
-  'strasbourg':'strasbourg','toulouse':'toulouse','le havre':'le-havre',
-  // Primeira Liga (Portugal)
-  'benfica':'benfica','sporting cp':'sporting-cp','sporting':'sporting-cp',
-  'fc porto':'fc-porto','porto':'fc-porto','braga':'sc-braga','guimaraes':'vitoria-de-guimaraes',
-  'vitoria guimaraes':'vitoria-de-guimaraes','famalicao':'fc-famalicao','farense':'sc-farense',
-  'moreirense':'moreirense','nacional':'cd-nacional','rio ave':'rio-ave',
-  'santa clara':'cd-santa-clara','boavista':'boavista','estrela':'estrela-da-amadora',
-  'estoril':'estoril-praia','gil vicente':'gil-vicente','arouca':'fc-arouca'
+  // Premier League
+  'arsenal':'57','aston villa':'66','bournemouth':'35','brentford':'55',
+  'brighton':'36','chelsea':'49','crystal palace':'52','everton':'45',
+  'fulham':'36','ipswich':'57','leicester':'46','liverpool':'40',
+  'manchester city':'50','manchester united':'33','newcastle':'34','newcastle united':'34',
+  'nottingham forest':'65','southampton':'41','tottenham':'47','tottenham hotspur':'47',
+  'west ham':'48','wolves':'39','wolverhampton':'39',
+  // La Liga
+  'atletico madrid':'530','barcelona':'529','real madrid':'541',
+  'athletic bilbao':'531','athletic club':'531','betis':'543','real betis':'543',
+  'celta vigo':'538','getafe':'546','girona':'547','las palmas':'534',
+  'leganes':'723','mallorca':'533','osasuna':'536','rayo vallecano':'542','rayo':'542',
+  'real sociedad':'548','sevilla':'536','espanyol':'532',
+  'valencia':'532','valladolid':'723','villarreal':'533','alaves':'542',
+  // Bundesliga
+  'augsburg':'526','bayer leverkusen':'168','leverkusen':'168',
+  'bayern munich':'157','bayern':'157','bochum':'176',
+  'borussia dortmund':'165','dortmund':'165',
+  'borussia monchengladbach':'163','gladbach':'163',
+  'eintracht frankfurt':'169','frankfurt':'169',
+  'freiburg':'160','heidenheim':'526','hoffenheim':'167',
+  'mainz':'164','rb leipzig':'173','leipzig':'173',
+  'stuttgart':'172','union berlin':'176','werder bremen':'162','wolfsburg':'161',
+  // Ligue 1
+  'angers':'521','auxerre':'521','brest':'521','lens':'521',
+  'lille':'521','lyon':'521','marseille':'521','monaco':'521',
+  'montpellier':'521','nantes':'521','nice':'521','paris saint-germain':'85','psg':'85',
+  'reims':'521','rennes':'521','saint-etienne':'521','strasbourg':'521','toulouse':'521',
+  // Primeira Liga
+  'benfica':'211','sporting cp':'228','sporting':'228',
+  'fc porto':'212','porto':'212','braga':'217','guimaraes':'220',
+  'vitoria guimaraes':'220','famalicao':'215','farense':'215',
+  'moreirense':'215','nacional':'215','rio ave':'216',
+  'santa clara':'215','boavista':'213','estoril':'215','gil vicente':'215','arouca':'215'
 };
 
 function getSoccerLogo(teamName) {
   const key = teamName.toLowerCase().trim().replace(/\s+/g,' ');
-  if (SOCCER_LOGOS[key]) {
-    return 'https://cdn.ssref.net/req/202504151/tlogo/lg/' + SOCCER_LOGOS[key] + '.png';
+  let id = SOCCER_LOGOS[key];
+  if (!id) {
+    const found = Object.keys(SOCCER_LOGOS).find(k => key.includes(k) || k.includes(key));
+    if (found) id = SOCCER_LOGOS[found];
   }
-  const found = Object.keys(SOCCER_LOGOS).find(k => key.includes(k) || k.includes(key));
-  if (found) return 'https://cdn.ssref.net/req/202504151/tlogo/lg/' + SOCCER_LOGOS[found] + '.png';
-  return null;
+  if (!id) return null;
+  return 'https://media.api-sports.io/football/teams/' + id + '.png';
 }
 
 function getTeamLogo(teamName, sport) {
@@ -757,6 +754,7 @@ function betRow(b, hideGame) {
     : '<td>' + gameLogos(b.game, b.sport) + '</td>';
   return '<tr>' +
     '<td style="color:var(--muted2);white-space:nowrap">' + b.date + '</td>' +
+    '<td>' + sportIcon(b.sport) + '</td>' +
     '<td style="font-weight:500">' + b.bet + '</td>' +
     gameCell +
     '<td style="color:var(--amber)">' + b.odd.toFixed(2) + '</td>' +
