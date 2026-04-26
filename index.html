@@ -351,6 +351,7 @@ async function dbGetAll() {
     id: r.id, date: r.date, bet: r.bet, game: r.game,
     odd: parseFloat(r.odd), stake: parseFloat(r.stake),
     outcome: r.outcome || '', sport: r.sport || 'basketball',
+    created_at: r.created_at || '',
     acca_id: r.acca_id || null,
     acca_combined_odd: r.acca_combined_odd ? parseFloat(r.acca_combined_odd) : null,
     acca_stake: r.acca_stake ? parseFloat(r.acca_stake) : null,
@@ -943,13 +944,15 @@ function renderTable(bets) {
   const empty = document.getElementById('emptyState');
 
   const sorted = [...bets].sort((a, b) => {
+    // First sort by date descending
     const dateDiff = new Date(b.date) - new Date(a.date);
     if (dateDiff !== 0) return dateDiff;
-    // Same date: group by game name so same-game bets are adjacent
-    const gameA = a.acca_id || a.game;
-    const gameB = b.acca_id || b.game;
-    if (gameA !== gameB) return gameA.localeCompare(gameB);
-    return 0;
+    // Same date: if same game, keep them together (sort by game name)
+    if (!a.acca_id && !b.acca_id && a.game === b.game) return 0;
+    // Otherwise sort by created_at descending (newest first)
+    const ca = a.created_at || a.id || '';
+    const cb = b.created_at || b.id || '';
+    return cb.localeCompare(ca);
   });
 
   if (!sorted.length) {
