@@ -385,7 +385,7 @@ async function dbDelete(id) {
   if (!res.ok) { const t = await res.text(); throw new Error(t); }
 }
 
-const SEED_BALANCE = { "4/2/2026": 35.0 };
+const SEED_BALANCE = { "4/2/2026": 35.0, "5/1/2026": 100.0 };
 
 const INITIAL_DATA = [
   {date:"4/3/2026",bet:"San Antonio Spurs",game:"Los Angeles Clippers - San Antonio Spurs",odd:2.07,stake:10.00,outcome:"W",sport:"basketball"},
@@ -566,10 +566,36 @@ function renderTabs() {
   const nextDate = new Date(ly, lm, 1);
   const nextKey = nextDate.getFullYear() + '-' + String(nextDate.getMonth()+1).padStart(2,'0');
   const nextLabel = nextDate.toLocaleDateString('en-US', {month:'long', year:'numeric'});
-  tabs.innerHTML = months.map(m =>
-    '<button class="tab-btn' + (m===activeMonth?' active':'') + '" onclick="selectMonth(\'' + m + '\')">' + monthLabel(m) + '</button>'
-  ).join('') + '<button class="add-month-btn" onclick="addMonth(\'' + nextKey + '\')">+ ' + nextLabel + '</button>';
+  tabs.innerHTML = months.map(m => {
+    const hasBets = betsForMonth(m).length > 0;
+    const isActive = m === activeMonth;
+    const deleteBtn = !hasBets
+      ? `<span onclick="event.stopPropagation();deleteMonth('${m}')" style="margin-left:5px;opacity:0.6;font-size:11px;cursor:pointer;" title="Remove month">✕</span>`
+      : '';
+    return `<button class="tab-btn${isActive?' active':''}" onclick="selectMonth('${m}')">${monthLabel(m)}${deleteBtn}</button>`;
+  }).join('') + '<button class="add-month-btn" onclick="addMonth(\'' + nextKey + '\')">+ ' + nextLabel + '</button>';
   document.getElementById('header-month').textContent = monthLabel(activeMonth);
+}
+
+async function deleteMonth(key) {
+  const hasBets = betsForMonth(key).length > 0;
+  if (hasBets) { alert('Cannot delete a month with bets!'); return; }
+  // Find and delete the placeholder row
+  const placeholder = allBets.find(b => {
+    const d = new Date(b.date);
+    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return k === key && b.bet === '__month_placeholder__';
+  });
+  if (!placeholder) { alert('No placeholder found for this month.'); return; }
+  try {
+    await dbDelete(placeholder.id);
+    allBets = allBets.filter(b => b.id !== placeholder.id);
+    if (activeMonth === key) {
+      const months = getMonths().filter(m => m !== key);
+      activeMonth = months[months.length - 1] || null;
+    }
+    render();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 async function addMonth(key) {
@@ -632,10 +658,15 @@ function render() {
   // Balance: current = last entry of active month, started = SEED (always €35)
   const balEntries = computeDailyBalances(activeMonth);
   const currentBalance = balEntries.length ? balEntries[balEntries.length-1][1] : null;
-  const startingBalance = SEED_BALANCE[Object.keys(SEED_BALANCE)[0]]; // always 35
+  const activeMonthSeedKey = Object.keys(SEED_BALANCE).find(k => {
+    const d = new Date(k);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') === activeMonth;
+  });
+  const startingBalance = activeMonthSeedKey ? SEED_BALANCE[activeMonthSeedKey] : null;
+  const totalInvested = Object.values(SEED_BALANCE).reduce((a,b) => a+b, 0);
   const balDisplay = currentBalance !== null ? '€' + currentBalance.toFixed(2) : '—';
-  const balColor = currentBalance !== null ? (currentBalance >= SEED_BALANCE[Object.keys(SEED_BALANCE)[0]] ? 'var(--green)' : 'var(--red)') : 'var(--muted2)';
-  const startDisplay = 'Started at €' + startingBalance.toFixed(2);
+  const balColor = currentBalance !== null ? (startingBalance && currentBalance >= startingBalance ? 'var(--green)' : 'var(--red)') : 'var(--muted2)';
+  const startDisplay = startingBalance ? 'Started at €' + startingBalance.toFixed(2) + ' · Total €' + totalInvested.toFixed(2) : 'Total invested €' + totalInvested.toFixed(2);
   const pendingBets = bets.filter(b => !b.outcome && (!b.acca_id || b.acca_leg === 1));
   const pendingStake = pendingBets.reduce((s,b) => s + (b.acca_id ? (b.acca_stake||b.stake) : b.stake), 0);
   const pendingSub = pendingStake > 0 ? `${startDisplay} · €${pendingStake.toFixed(2)} staked` : startDisplay;
