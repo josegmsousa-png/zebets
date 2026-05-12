@@ -385,7 +385,7 @@ async function dbDelete(id) {
   if (!res.ok) { const t = await res.text(); throw new Error(t); }
 }
 
-const SEED_BALANCE = { "4/2/2026": 35.0, "5/1/2026": 100.0 };
+const SEED_BALANCE = { "4/2/2026": 35.0, "5/1/2026": 60.0 };
 
 const INITIAL_DATA = [
   {date:"4/3/2026",bet:"San Antonio Spurs",game:"Los Angeles Clippers - San Antonio Spurs",odd:2.07,stake:10.00,outcome:"W",sport:"basketball"},
