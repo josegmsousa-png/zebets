@@ -772,9 +772,21 @@ const SOCCER_LOGOS = {
   'atletico madrid':'530','barcelona':'529','real madrid':'541',
   'athletic bilbao':'531','athletic club':'531','betis':'543','real betis':'543',
   'celta vigo':'538','getafe':'546','girona':'547','las palmas':'534',
-  'leganes':'723','mallorca':'533','osasuna':'536','rayo vallecano':'e_101','rayo':'e_101',
-  'real sociedad':'548','sevilla':'536','espanyol':'532',
-  'valencia':'532','valladolid':'723','villarreal':'533','alaves':'542',
+  'leganes':'723','mallorca':'533','osasuna':'536','rayo vallecano':'e_101',
+  'real sociedad':'e_116','sevilla':'e_240','espanyol':'e_231',
+  'valencia':'e_94','valladolid':'e_720','villarreal':'e_102','alaves':'e_544',
+  // English lower leagues
+  'bradford city':'e_387','bradford':'e_387',
+  'bolton wanderers':'e_358','bolton':'e_358',
+  'wrexham':'e_9906','ipswich town':'e_335','ipswich':'e_335',
+  'leeds united':'e_357','leeds':'e_357','sunderland':'e_382','sheffield united':'e_371',
+  'birmingham city':'e_351','birmingham':'e_351','middlesbrough':'e_364',
+  'norwich city':'e_367','norwich':'e_367','millwall':'e_363','cardiff city':'e_353',
+  'cardiff':'e_353','stoke city':'e_378','stoke':'e_378','swansea city':'e_380',
+  'swansea':'e_380','hull city':'e_355','hull':'e_355','coventry city':'e_354','coventry':'e_354',
+  'oxford united':'e_369','oxford':'e_369','blackburn rovers':'e_350','blackburn':'e_350',
+  'bristol city':'e_352','bristol':'e_352','preston north end':'e_370','preston':'e_370',
+  'watford':'e_384','luton town':'e_360','luton':'e_360','plymouth argyle':'e_369',
   // Bundesliga
   'augsburg':'526','bayer leverkusen':'168','leverkusen':'168',
   'bayern munich':'157','bayern':'157','bochum':'176',
@@ -822,11 +834,11 @@ const SOCCER_LOGOS = {
   'oliveirense':'1106','sc oliveirense':'1106',
   'ud vilafranquense':'1114','vilafranquense':'1114',
   // Segunda División (Spain)
-  'real oviedo':'728','oviedo':'728','elche':'727','elche cf':'727',
-  'racing santander':'726','racing':'726','sporting gijon':'729','gijon':'729',
+  'real oviedo':'e_92','oviedo':'e_92','elche':'e_727','elche cf':'e_727',
+  'racing santander':'e_726','racing':'e_726','sporting gijon':'729','gijon':'729',
   'sd huesca':'730','huesca':'730','real zaragoza':'731','zaragoza':'731',
   'burgos':'732','burgos cf':'732','sd eibar':'733','eibar':'733',
-  'fc cartagena':'735','cartagena':'735','real valladolid':'720','cd mirandes':'736',
+  'fc cartagena':'735','cartagena':'735','real valladolid':'e_720','cd mirandes':'736',
   'granada':'724','granada cf':'724','levante':'725','levante ud':'725',
   'albacete':'734','cd castellon':'738','fc andorra':'737',
   // Primeira Liga
@@ -852,7 +864,11 @@ function getSoccerLogo(teamName) {
   if (embKey) return EMBEDDED_LOGOS[embKey];
   let id = SOCCER_LOGOS[key];
   if (!id) {
-    const found = Object.keys(SOCCER_LOGOS).find(k => key.includes(k) || k.includes(key));
+    const found = Object.keys(SOCCER_LOGOS).find(k => {
+      const nk = normalizeKey(k);
+      if (nk.length < 5) return false; // avoid short keys causing false matches
+      return key === nk || key.includes(nk) || nk.includes(key);
+    });
     if (found) id = SOCCER_LOGOS[found];
   }
   if (!id) return null;
