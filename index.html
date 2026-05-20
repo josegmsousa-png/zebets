@@ -677,21 +677,40 @@ function render() {
   const roiDisplay = roi !== null ? (roi >= 0 ? '+' : '') + roi.toFixed(1) + '%' : '—';
   const roiColor = roi === null ? 'var(--muted2)' : roi >= 0 ? 'var(--green)' : 'var(--red)';
 
+  // Month-only calculations
+  const settledMonthBets = bets.filter(b => (b.outcome==='W'||b.outcome==='L') && (!b.acca_id || b.acca_leg===1));
+  let monthStake = 0, monthReturn = 0;
+  for (const mb of settledMonthBets) {
+    const mStake = mb.acca_id ? (mb.acca_stake||mb.stake) : mb.stake;
+    const mOdd = mb.acca_id ? parseFloat((mb.acca_combined_odd||mb.odd).toFixed(2)) : mb.odd;
+    monthStake += mStake;
+    if (mb.outcome === 'W') monthReturn += mStake * mOdd;
+  }
+  const pnlMonth = monthReturn - monthStake;
+  const roiMonth = monthStake > 0 ? ((pnlMonth / monthStake) * 100) : null;
+  const roiMonthDisplay = roiMonth !== null ? (roiMonth >= 0 ? '+' : '') + roiMonth.toFixed(1) + '%' : '—';
+  const roiMonthColor = roiMonth === null ? 'var(--muted2)' : roiMonth >= 0 ? 'var(--green)' : 'var(--red)';
+  const monthBetsForAvg = bets.filter(b => !b.acca_id || b.acca_leg===1);
+  const avgOddMonth = monthBetsForAvg.length ? (monthBetsForAvg.reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/monthBetsForAvg.length).toFixed(2) : '—';
+  const totalBetsCount = allUpToNow.filter(b => !b.acca_id || b.acca_leg===1).length;
+  const avgOddAll = totalBetsCount ? (allUpToNow.filter(b=>!b.acca_id||b.acca_leg===1).reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/totalBetsCount).toFixed(2) : '—';
+
   // Month-only W/L for donut
   const settled = bets.filter(b => b.outcome === 'W' || b.outcome === 'L');
   const wins = settled.filter(b => b.outcome === 'W').length;
   const losses = settled.filter(b => b.outcome === 'L').length;
 
   const settledCount = allUpToNow.filter(b => (b.outcome==='W'||b.outcome==='L') && (!b.acca_id || b.acca_leg===1)).length;
-  const totalBetsCount = allUpToNow.filter(b => !b.acca_id || b.acca_leg===1).length;
+  const monthBetsCount = bets.filter(b => !b.acca_id || b.acca_leg===1).length;
+  const monthSettledCount = bets.filter(b => (b.outcome==='W'||b.outcome==='L') && (!b.acca_id || b.acca_leg===1)).length;
 
   document.getElementById('statsGrid').innerHTML =
-    '<div class="stat-card accent"><div class="stat-label">Total Bets</div><div class="stat-value" style="color:var(--accent2)">' + totalBetsCount + '</div><div class="stat-sub">' + settledCount + ' settled · ' + monthLabel(activeMonth) + '</div></div>' +
+    '<div class="stat-card accent"><div class="stat-label">Total Bets</div><div class="stat-value" style="color:var(--accent2)">' + monthBetsCount + '</div><div class="stat-sub">' + monthSettledCount + ' settled · ' + monthLabel(activeMonth) + '</div><div class="stat-sub" style="margin-top:2px;">' + totalBetsCount + ' total all time</div></div>' +
     '<div class="stat-card"><div class="stat-label">Current Balance</div><div class="stat-value" style="color:' + balColor + '">' + balDisplay + '</div><div class="stat-sub">' + pendingSub + '</div></div>' +
     '<div class="stat-card green"><div class="stat-label">Win Rate</div><div class="stat-value">' + wrAll + (wrAll!=='—'?'%':'') + '</div><div class="stat-sub">' + winsAll + 'W / ' + lossesAll + 'L (all time)</div></div>' +
-    '<div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value" style="color:' + roiColor + '">' + roiDisplay + '</div><div class="stat-sub">return on stake</div></div>' +
-    '<div class="stat-card ' + (pnlAll>=0?'green':'red') + '"><div class="stat-label">P&L</div><div class="stat-value">' + (pnlAll>=0?'+':'') + '€' + pnlAll.toFixed(2) + '</div><div class="stat-sub">Staked €' + totalStakeAll.toFixed(2) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Avg Odd</div><div class="stat-value" style="color:var(--amber)">' + (totalBetsCount ? (allUpToNow.filter(b=>!b.acca_id||b.acca_leg===1).reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/totalBetsCount).toFixed(2) : '—') + '</div><div class="stat-sub">per bet</div></div>';
+    '<div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value" style="color:' + roiMonthColor + '">' + roiMonthDisplay + '</div><div class="stat-sub">' + monthLabel(activeMonth) + '</div><div class="stat-sub" style="margin-top:2px;">' + roiDisplay + ' all time</div></div>' +
+    '<div class="stat-card ' + (pnlMonth>=0?'green':'red') + '"><div class="stat-label">P&L</div><div class="stat-value">' + (pnlMonth>=0?'+':'') + '€' + pnlMonth.toFixed(2) + '</div><div class="stat-sub">Staked €' + monthStake.toFixed(2) + ' · ' + monthLabel(activeMonth) + '</div><div class="stat-sub" style="margin-top:2px;">' + (pnlAll>=0?'+':'') + '€' + pnlAll.toFixed(2) + ' all time</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Avg Odd</div><div class="stat-value" style="color:var(--amber)">' + avgOddMonth + '</div><div class="stat-sub">' + monthLabel(activeMonth) + '</div><div class="stat-sub" style="margin-top:2px;">' + avgOddAll + ' all time</div></div>';
 
   renderBalanceChart();
   renderDonutChart(wins, losses, bets.length - settled.length);
