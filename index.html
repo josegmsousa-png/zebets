@@ -135,6 +135,7 @@
   .sport-icon.basketball { background: rgba(251,146,60,0.15); }
   .sport-icon.nfl { background: rgba(139,92,246,0.15); }
   .sport-icon.soccer { background: rgba(34,197,94,0.15); }
+  .sport-icon.mlb { background: rgba(239,68,68,0.15); }
   .sport-icon.other { background: rgba(156,163,175,0.12); }
   .game-cell { display: flex; align-items: center; }
   .add-month-btn { background: none; border: 1px dashed var(--border2); color: var(--muted); padding: 7px 16px; border-radius: 50px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -250,6 +251,7 @@
           <option value="basketball">🏀 Basketball</option>
           <option value="nfl">🏈 Football</option>
           <option value="soccer">⚽ Soccer</option>
+          <option value="mlb">⚾ Baseball</option>
           <option value="other">🎯 Other</option>
         </select>
       </div>
@@ -737,6 +739,34 @@ function renderDonutChart(wins, losses, pending) {
     ).join('');
 }
 
+const MLB_LOGOS = {
+  // AL East
+  'new york yankees':'nyy','boston red sox':'bos','toronto blue jays':'tor',
+  'tampa bay rays':'tb','baltimore orioles':'bal',
+  // AL Central
+  'chicago white sox':'cws','cleveland guardians':'cle','detroit tigers':'det',
+  'kansas city royals':'kc','minnesota twins':'min',
+  // AL West
+  'houston astros':'hou','los angeles angels':'laa','oakland athletics':'oak',
+  'seattle mariners':'sea','texas rangers':'tex',
+  // NL East
+  'new york mets':'nym','atlanta braves':'atl','philadelphia phillies':'phi',
+  'miami marlins':'mia','washington nationals':'wsh',
+  // NL Central
+  'chicago cubs':'chc','milwaukee brewers':'mil','st. louis cardinals':'stl',
+  'pittsburgh pirates':'pit','cincinnati reds':'cin',
+  // NL West
+  'los angeles dodgers':'lad','san francisco giants':'sf','san diego padres':'sd',
+  'colorado rockies':'col','arizona diamondbacks':'ari',
+  // Short names
+  'yankees':'nyy','red sox':'bos','blue jays':'tor','rays':'tb','orioles':'bal',
+  'white sox':'cws','guardians':'cle','tigers':'det','royals':'kc','twins':'min',
+  'astros':'hou','angels':'laa','athletics':'oak','mariners':'sea','rangers':'tex',
+  'mets':'nym','braves':'atl','phillies':'phi','marlins':'mia','nationals':'wsh',
+  'cubs':'chc','brewers':'mil','cardinals':'stl','pirates':'pit','reds':'cin',
+  'dodgers':'lad','giants':'sf','padres':'sd','rockies':'col','diamondbacks':'ari'
+};
+
 const NBA_LOGOS = {
   'atlanta hawks':'ATL','boston celtics':'BOS','brooklyn nets':'BKN','charlotte hornets':'CHA',
   'chicago bulls':'CHI','cleveland cavaliers':'CLE','dallas mavericks':'DAL','denver nuggets':'DEN',
@@ -908,16 +938,15 @@ function getTeamLogo(teamName, sport) {
 
   if (sport === 'soccer') return getSoccerLogo(teamName);
   const key = keyCheck.replace(/[–—]/g, '-');
-  const logos = sport === 'nfl' ? NFL_LOGOS : NBA_LOGOS;
+  const logos = sport === 'nfl' ? NFL_LOGOS : sport === 'mlb' ? MLB_LOGOS : NBA_LOGOS;
+  const league = sport === 'nfl' ? 'nfl' : sport === 'mlb' ? 'mlb' : 'nba';
   if (logos[key]) {
     const abbr = logos[key];
-    const league = sport === 'nfl' ? 'nfl' : 'nba';
     return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
   }
   const found = Object.keys(logos).find(k => key.includes(k) || k.includes(key));
   if (found) {
     const abbr = logos[found];
-    const league = sport === 'nfl' ? 'nfl' : 'nba';
     return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
   }
   return null;
@@ -964,6 +993,7 @@ function betPnl(b) {
 function sportIcon(sport) {
   if (sport==='nfl') return '<span class="sport-icon nfl">🏈</span>';
   if (sport==='soccer') return '<span class="sport-icon soccer">⚽</span>';
+  if (sport==='mlb') return '<span class="sport-icon mlb">⚾</span>';
   if (sport==='other') return '<span class="sport-icon other">🎯</span>';
   return '<span class="sport-icon basketball">🏀</span>';
 }
@@ -1356,6 +1386,7 @@ function addAccaLeg() {
       '<option value="basketball">🏀 Basketball</option>' +
       '<option value="soccer">⚽ Soccer</option>' +
       '<option value="nfl">🏈 Football</option>' +
+      '<option value="mlb">⚾ Baseball</option>' +
       '<option value="other">🎯 Other</option>' +
     '</select>' +
     '<input type="text" placeholder="Selection" id="leg-bet-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
