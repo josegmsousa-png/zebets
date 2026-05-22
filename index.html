@@ -122,8 +122,9 @@
   .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
 
   @media (max-width: 640px) {
-    .form-grid, .form-grid-3 { grid-template-columns: 1fr !important; }
-    .form-group.full { grid-column: 1 !important; }
+    .form-grid { grid-template-columns: 1fr 1fr !important; }
+    .form-grid-3 { grid-template-columns: 1fr 1fr !important; }
+    .form-group.full { grid-column: 1 / -1 !important; }
   }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
   .form-group.full { grid-column: 1 / -1; }
