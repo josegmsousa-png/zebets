@@ -119,6 +119,12 @@
   .modal-overlay.open .modal { transform: translateY(0) scale(1); }
   .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin-bottom: 1.3rem; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  @media (max-width: 640px) {
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr !important; }
+    .form-group.full { grid-column: 1 !important; }
+  }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
   .form-group.full { grid-column: 1 / -1; }
   label { font-size: 11px; font-weight: 500; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.07em; }
@@ -168,12 +174,20 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .stat-value { font-size: 1.4rem; }
     main { padding-top: 1rem; padding-bottom: 3rem; }
-
-    /* Hide desktop table, show mobile cards */
     .table-wrap { display: none; }
     .mobile-bets { display: block; }
-    .form-grid { grid-template-columns: 1fr 1fr; }
-    .form-grid[style*="1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; }
+
+    /* Modal — always single column on mobile */
+    .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; }
+    .form-grid,
+    .form-grid[style] { grid-template-columns: 1fr !important; }
+    .form-group.full { grid-column: 1 !important; }
+
+    /* Acca modal legs — stack on mobile */
+    #accaLegs > div { grid-template-columns: 1fr 1fr !important; }
+    #accaLegs > div > select { grid-column: 1 / -1; }
+    #accaLegs > div > input[id^="leg-odd"] { grid-column: 1; }
+    #accaLegs > div > button { grid-column: 2; justify-self: end; }
   }
 </style>
 </head>
@@ -237,10 +251,10 @@
   </div>
 </main>
 
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+<div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title" id="modalTitle">Add New Bet</div>
-    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="form-grid form-grid-3">
       <div class="form-group">
         <label>Date</label>
         <input type="date" id="f-date">
@@ -288,10 +302,10 @@
 </div>
 
 <!-- ACCA MODAL -->
-<div class="modal-overlay" id="accaModalOverlay" onclick="handleAccaOverlayClick(event)">
+<div class="modal-overlay" id="accaModalOverlay">
   <div class="modal" style="max-width:680px;width:96%">
     <div class="modal-title">⚡ New Accumulator</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div class="form-grid">
       <div class="form-group">
         <label>Date</label>
         <input type="date" id="a-date">
@@ -1265,7 +1279,11 @@ function closeModal() {
   document.getElementById('outcome-group').style.display = 'none';
   editingId = null;
 }
-function handleOverlayClick(e) { if (e.target===e.currentTarget) closeModal(); }
+function handleOverlayClick(e) {
+  if (e.target !== e.currentTarget) return;
+  if (window.getSelection && window.getSelection().toString().length > 0) return;
+  closeModal();
+}
 
 async function saveBet() {
   const date = document.getElementById('f-date').value;
@@ -1391,7 +1409,9 @@ function closeAccaModal() {
 }
 
 function handleAccaOverlayClick(e) {
-  if (e.target === e.currentTarget) closeAccaModal();
+  if (e.target !== e.currentTarget) return;
+  if (window.getSelection && window.getSelection().toString().length > 0) return;
+  closeAccaModal();
 }
 
 function addAccaLeg() {
