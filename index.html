@@ -483,8 +483,10 @@ function computeDailyBalances(monthKey) {
         if (b.acca_leg === 1) {
           const stake = b.acca_stake || b.stake;
           const combinedOdd = parseFloat((b.acca_combined_odd || b.odd).toFixed(2));
-          if (b.outcome === 'W') dayPnl += stake * combinedOdd - stake;
-          else if (b.outcome === 'L') dayPnl -= stake;
+          // Acca outcome is derived from all legs, never leg 1's own outcome
+          const accaOutcome = getAccaOutcome(b.acca_id);
+          if (accaOutcome === 'W') dayPnl += stake * combinedOdd - stake;
+          else if (accaOutcome === 'L') dayPnl -= stake;
           else dayPnl -= stake; // pending
         }
         // skip legs 2, 3, etc — already handled by leg 1
