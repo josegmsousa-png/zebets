@@ -240,7 +240,7 @@
   </div>
 </main>
 
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+<div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title" id="modalTitle">Add New Bet</div>
     <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
@@ -291,7 +291,7 @@
 </div>
 
 <!-- ACCA MODAL -->
-<div class="modal-overlay" id="accaModalOverlay" onclick="handleAccaOverlayClick(event)">
+<div class="modal-overlay" id="accaModalOverlay">
   <div class="modal" style="max-width:680px;width:96%">
     <div class="modal-title">⚡ New Accumulator</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -1368,7 +1368,6 @@ function closeModal() {
   document.getElementById('outcome-group').style.display = 'none';
   editingId = null;
 }
-function handleOverlayClick(e) { if (e.target===e.currentTarget) closeModal(); }
 
 async function saveBet() {
   const date = document.getElementById('f-date').value;
@@ -1493,9 +1492,6 @@ function closeAccaModal() {
   document.getElementById('accaModalOverlay').classList.remove('open');
 }
 
-function handleAccaOverlayClick(e) {
-  if (e.target === e.currentTarget) closeAccaModal();
-}
 
 function addAccaLeg() {
   accaLegCount++;
