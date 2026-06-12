@@ -175,8 +175,17 @@
     /* Hide desktop table, show mobile cards */
     .table-wrap { display: none; }
     .mobile-bets { display: block; }
-    .form-grid { grid-template-columns: 1fr 1fr; }
-    .form-grid[style*="1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; }
+
+    /* Modal — 2 columns on mobile, full width (!important beats inline 3-col styles) */
+    .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; }
+    .form-grid { grid-template-columns: 1fr 1fr !important; }
+    .form-group.full { grid-column: 1 / -1 !important; }
+
+    /* Acca modal legs — stack on mobile */
+    #accaLegs > div { grid-template-columns: 1fr 1fr !important; }
+    #accaLegs > div > select { grid-column: 1 / -1; }
+    #accaLegs > div > input[id^="leg-odd"] { grid-column: 1; }
+    #accaLegs > div > button { grid-column: 2; justify-self: end; }
   }
 </style>
 </head>
