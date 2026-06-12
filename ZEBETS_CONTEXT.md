@@ -129,14 +129,22 @@ All 30 MLB teams
 
 **Leagues covered:** Premier League, La Liga, Bundesliga, Ligue 1, Serie A, Eredivisie, Primeira Liga, Liga Portugal 2, Segunda División (Spain), English Championship/League One
 
+### Country Flags (national teams, any sport)
+- `COUNTRY_FLAGS` map: normalized country name → ISO 3166 code (~190 entries, English + Portuguese names)
+- URL: `flagcdn.com/w80/{code}.png` (England/Scotland/Wales/N. Ireland use `gb-eng` etc.)
+- **Exact-match only** (no fuzzy) to avoid collisions with club names
+- Checked in `getTeamLogo` right after `EMBEDDED_LOGOS`, before sport-specific maps
+- Rendered with `object-fit: cover` (flags are rectangular → circular crop); club logos keep `contain`
+
 ### Embedded Logos (base64, in `EMBEDDED_LOGOS` object)
 - Penafiel, Nice, Famalicão, Torreense
 - **Important:** base64 strings MUST use backtick delimiters not single quotes (base64 can contain `'` characters which break JS string literals)
 
 ### Logo Lookup Priority
 1. `EMBEDDED_LOGOS` (exact + fuzzy, accent-normalized)
-2. Sport-specific map (NBA/NFL/MLB/SOCCER)
-3. Fuzzy match (min 8 chars to avoid false positives)
+2. `COUNTRY_FLAGS` (exact match only)
+3. Sport-specific map (NBA/NFL/MLB/SOCCER)
+4. Fuzzy match (min 8 chars to avoid false positives)
 
 ### Key IDs (verified ESPN)
 | Team | ID |
@@ -193,10 +201,9 @@ All 30 MLB teams
 
 ## File Update Workflow
 1. Make changes to `index.html` locally
-2. Go to `github.com/josegmsousa-png/zebets`
-3. Click `index.html` → ✏️ edit → Ctrl+A → paste → Commit
-4. GitHub Pages auto-deploys in ~1 min
-5. Hard refresh: `Ctrl+Shift+R`
+2. `git add` → `git commit` → `git push` (repo connected to `origin/main`, Git Credential Manager handles auth)
+3. GitHub Pages auto-deploys in ~1 min
+4. Hard refresh: `Ctrl+Shift+R`
 
 ---
 
