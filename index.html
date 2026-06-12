@@ -791,6 +791,17 @@ const MLB_LOGOS = {
 };
 
 const NBA_LOGOS = {
+  // EuroLeague / International — 'bball:e_XXX' borrows the club's ESPN soccer logo, 'init:XX' renders text initials
+  'olympiacos':'bball:e_435','olympiacos bc':'bball:e_435',
+  'olympiacos sfp piraeus':'bball:e_435','olympiakos':'bball:e_435',
+  'real madrid baloncesto':'bball:e_86','real madrid basketball':'bball:e_86',
+  'fenerbahce beko':'bball:e_9906','fenerbahce':'bball:e_9906',
+  'fc barcelona basketball':'bball:e_83','barcelona basketball':'bball:e_83',
+  'panathinaikos':'init:PAN','anadolu efes':'init:EFS',
+  'cska moscow':'init:CSK','maccabi tel aviv':'init:MTA',
+  'alba berlin':'init:ALB','armani milano':'init:MIL',
+  'olympia milano':'init:MIL','virtus bologna':'init:VIR',
+  'monaco basketball':'bball:e_91',
   'atlanta hawks':'ATL','boston celtics':'BOS','brooklyn nets':'BKN','charlotte hornets':'CHA',
   'chicago bulls':'CHI','cleveland cavaliers':'CLE','dallas mavericks':'DAL','denver nuggets':'DEN',
   'detroit pistons':'DET','golden state warriors':'GSW','houston rockets':'HOU','indiana pacers':'IND',
@@ -1030,22 +1041,27 @@ function getTeamLogo(teamName, sport) {
   const key = keyCheck.replace(/[–—]/g, '-');
   const logos = sport === 'nfl' ? NFL_LOGOS : sport === 'mlb' ? MLB_LOGOS : NBA_LOGOS;
   const league = sport === 'nfl' ? 'nfl' : sport === 'mlb' ? 'mlb' : 'nba';
-  if (logos[key]) {
-    const abbr = logos[key];
-    return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
-  }
+  if (logos[key]) return resolveLeagueLogo(logos[key], league);
   const found = Object.keys(logos).find(k => key.includes(k) || k.includes(key));
-  if (found) {
-    const abbr = logos[found];
-    return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
-  }
+  if (found) return resolveLeagueLogo(logos[found], league);
   return null;
+}
+
+function resolveLeagueLogo(abbr, league) {
+  if (abbr.startsWith('url:')) return abbr.slice(4);
+  if (abbr.startsWith('init:')) return 'init:' + abbr.slice(5);
+  if (abbr.startsWith('bball:e_')) return 'https://a.espncdn.com/i/teamlogos/soccer/500/' + abbr.slice(8) + '.png';
+  if (/^\d+$/.test(abbr)) return 'https://media.api-sports.io/basketball/teams/' + abbr + '.png';
+  return 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' + league + '/500/' + abbr + '.png&w=40&h=40';
 }
 
 function teamLogoImg(teamName, sport, size) {
   size = size || 22;
   const url = getTeamLogo(teamName, sport);
   if (!url) return '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:var(--surface3);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:' + Math.round(size*0.45) + 'px;color:var(--muted)">?</div>';
+  if (url.startsWith('init:')) {
+    return '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:var(--surface3);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:' + Math.round(size*0.32) + 'px;font-weight:700;letter-spacing:0.3px;color:var(--muted2)">' + url.slice(5) + '</div>';
+  }
   // Flags are rectangular — crop to fill the circle instead of letterboxing
   const fit = url.includes('flagcdn.com') ? 'cover' : 'contain';
   return '<img src="' + url + '" alt="' + teamName + '" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;object-fit:' + fit + ';background:rgba(255,255,255,0.06);flex-shrink:0;" onerror="this.style.display=\'none\'">';
