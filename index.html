@@ -1041,12 +1041,13 @@ function getTeamLogo(teamName, sport) {
   return null;
 }
 
-function teamLogoImg(teamName, sport) {
+function teamLogoImg(teamName, sport, size) {
+  size = size || 22;
   const url = getTeamLogo(teamName, sport);
-  if (!url) return '<div style="width:22px;height:22px;border-radius:50%;background:var(--surface3);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)">?</div>';
+  if (!url) return '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:var(--surface3);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:' + Math.round(size*0.45) + 'px;color:var(--muted)">?</div>';
   // Flags are rectangular — crop to fill the circle instead of letterboxing
   const fit = url.includes('flagcdn.com') ? 'cover' : 'contain';
-  return '<img src="' + url + '" alt="' + teamName + '" style="width:22px;height:22px;border-radius:50%;object-fit:' + fit + ';background:rgba(255,255,255,0.06);flex-shrink:0;" onerror="this.style.display=\'none\'">';
+  return '<img src="' + url + '" alt="' + teamName + '" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;object-fit:' + fit + ';background:rgba(255,255,255,0.06);flex-shrink:0;" onerror="this.style.display=\'none\'">';
 }
 
 function gameLogos(gameStr, sport) {
@@ -1231,8 +1232,13 @@ function renderTable(bets) {
         const tick = lo==='W' ? '<span style="color:var(--green);font-weight:700;">✓</span>'
           : lo==='L' ? '<span style="color:var(--red);font-weight:700;">✗</span>'
           : '<span style="color:var(--muted);">—</span>';
+        const lp = (leg.game || '').split(/\s[-–—]\s|\svs\.?\s/i);
+        const legLogos = lp.length >= 2
+          ? `<span style="display:inline-flex;flex-shrink:0;">${teamLogoImg(lp[0].trim(), leg.sport, 14)}<span style="margin-left:-4px;display:inline-flex;">${teamLogoImg(lp[1].trim(), leg.sport, 14)}</span></span>`
+          : '';
         return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border);">
           ${sportIcon(leg.sport)}
+          ${legLogos}
           <span style="flex:1;font-size:12px;color:var(--muted2);">${leg.bet} <span style="color:var(--muted);font-size:11px;">· ${leg.odd.toFixed(2)}</span></span>
           <span style="font-size:13px;">${tick}</span>
           <button class="delete-row-btn" onclick="openEditModal('${leg.id}')" style="color:var(--muted);font-size:13px;">✎</button>
@@ -1263,12 +1269,20 @@ function renderTable(bets) {
         : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
         : '<span class="outcome-badge outcome-pending">—</span>';
       const parts = b.game.split(/\s[-–—]\s|\svs\.?\s/i);
-      const gameShort = parts.length >= 2 ? (parts[0].split(' ').pop() + ' vs ' + parts[1].split(' ').pop()) : b.game;
+      let gameLine;
+      if (parts.length >= 2) {
+        const t1 = parts[0].trim(), t2 = parts[1].trim();
+        gameLine = `${teamLogoImg(t1, b.sport, 15)}<span>${t1.split(' ').pop()}</span>` +
+          `<span style="color:var(--muted);font-size:10px;">vs</span>` +
+          `${teamLogoImg(t2, b.sport, 15)}<span>${t2.split(' ').pop()}</span>`;
+      } else {
+        gameLine = `<span>${b.game}</span>`;
+      }
       mobileHtml += `<div class="bet-card-mobile">
         <div class="bet-card-mobile-top">
           <div>
             <div style="font-weight:600;font-size:14px;">${b.bet}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${sportIcon(b.sport)}${gameShort} · ${b.date}</div>
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:3px;">${sportIcon(b.sport)}${gameLine}<span>· ${b.date}</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">${badge}
             <div class="bet-card-actions">
