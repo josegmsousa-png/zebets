@@ -186,6 +186,16 @@
     #accaLegs > div > select { grid-column: 1 / -1; }
     #accaLegs > div > input[id^="leg-odd"] { grid-column: 1; }
     #accaLegs > div > button { grid-column: 2; justify-self: end; }
+    #accaLegHeaders { display: none !important; }
+
+    /* Bet modal: pair Odd with Stake (Bet/Game stay full-width) */
+    #modalOverlay .form-grid > .form-group:nth-child(1) { order: 1; }
+    #modalOverlay .form-grid > .form-group:nth-child(2) { order: 2; }
+    #modalOverlay .form-grid > .form-group:nth-child(3) { order: 3; }
+    #modalOverlay .form-grid > .form-group:nth-child(6) { order: 4; }
+    #modalOverlay .form-grid > .form-group:nth-child(4) { order: 5; }
+    #modalOverlay .form-grid > .form-group:nth-child(5) { order: 6; }
+    #modalOverlay .form-grid > .form-group:nth-child(7) { order: 7; }
   }
 </style>
 </head>
@@ -319,7 +329,7 @@
       <button onclick="addAccaLeg()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--accent);padding:4px 12px;border-radius:50px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Add Leg</button>
     </div>
     <!-- Column headers -->
-    <div style="display:grid;grid-template-columns:100px 1fr 1.2fr 65px 28px;gap:8px;padding:0 0 4px;margin-bottom:2px;">
+    <div id="accaLegHeaders" style="display:grid;grid-template-columns:100px 1fr 1.2fr 65px 28px;gap:8px;padding:0 0 4px;margin-bottom:2px;">
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Sport</div>
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Selection</div>
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Game</div>
