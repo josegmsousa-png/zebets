@@ -63,6 +63,7 @@
   .logo-text span { font-style: normal; }
   .header-actions { display: flex; gap: 8px; align-items: center; }
   .month-tabs { display: flex; gap: 8px; padding: 1rem 2.5rem 0; overflow-x: auto; scrollbar-width: none; }
+  .month-tabs::-webkit-scrollbar { display: none; } /* scrollbar-width only works in Firefox */
   .month-tabs::-webkit-scrollbar { display: none; }
   .tab-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted2); padding: 7px 18px; border-radius: 50px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .tab-btn:hover { border-color: var(--border2); color: var(--text); }
