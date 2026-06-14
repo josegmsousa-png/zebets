@@ -123,6 +123,7 @@
   .modal-overlay.open .modal { transform: translateY(0) scale(1); }
   .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin-bottom: 1.3rem; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
   .form-group.full { grid-column: 1 / -1; }
   label { font-size: 11px; font-weight: 500; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.07em; }
@@ -177,13 +178,13 @@
     .table-wrap { display: none; }
     .mobile-bets { display: block; }
 
-    /* Modal — 2 columns on mobile, full width (!important beats inline 3-col styles) */
+    /* Modal — 2 columns on mobile, full width */
     .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; }
-    /* minmax(0,1fr): plain 1fr lets wide native widgets (date input) blow out the column */
-    .form-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; }
+    /* form-grid-3 class overridden here — same specificity, media query wins by source order */
+    .form-grid, .form-grid-3 { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
     .form-group { min-width: 0; }
     .form-group input, .form-group select { min-width: 0; }
-    .form-group.full { grid-column: 1 / -1 !important; }
+    .form-group.full { grid-column: 1 / -1; }
 
     /* Acca modal legs — stack on mobile */
     #accaLegs > div { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; }
@@ -266,7 +267,7 @@
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title" id="modalTitle">Add New Bet</div>
-    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="form-grid form-grid-3">
       <div class="form-group">
         <label>Date</label>
         <input type="date" id="f-date">
