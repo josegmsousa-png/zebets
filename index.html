@@ -183,7 +183,7 @@
     .mobile-bets { display: block; }
 
     /* Modal — single column on mobile, full width */
-    .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; overflow: hidden; }
+    .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; }
     .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
     .form-group { min-width: 0; }
     .form-group input, .form-group select { min-width: 0; }
@@ -314,7 +314,7 @@
 <div class="modal-overlay" id="accaModalOverlay">
   <div class="modal" style="max-width:680px;width:96%">
     <div class="modal-title">⚡ New Accumulator</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div class="form-grid acca-date-stake">
       <div class="form-group">
         <label>Date</label>
         <input type="date" id="a-date">
