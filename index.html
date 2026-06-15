@@ -180,13 +180,14 @@
     .table-wrap { display: none; }
     .mobile-bets { display: block; }
 
-    /* Modal — 2 columns on mobile, full width */
+    /* Modal — single column on mobile, full width */
     .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; }
-    /* form-grid-3 class overridden here — same specificity, media query wins by source order */
-    .form-grid, .form-grid-3 { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
     .form-group { min-width: 0; }
     .form-group input, .form-group select { min-width: 0; }
     .form-group.full { grid-column: 1 / -1; }
+    /* Acca date/stake row: single column */
+    #accaModalOverlay .modal > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 
     /* Acca modal legs — stack on mobile */
     #accaLegs > div { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; }
@@ -194,15 +195,6 @@
     #accaLegs > div > input[id^="leg-odd"] { grid-column: 1; }
     #accaLegs > div > button { grid-column: 2; justify-self: end; }
     #accaLegHeaders { display: none !important; }
-
-    /* Bet modal: pair Odd with Stake (Bet/Game stay full-width) */
-    #modalOverlay .form-grid > .form-group:nth-child(1) { order: 1; }
-    #modalOverlay .form-grid > .form-group:nth-child(2) { order: 2; }
-    #modalOverlay .form-grid > .form-group:nth-child(3) { order: 3; }
-    #modalOverlay .form-grid > .form-group:nth-child(6) { order: 4; }
-    #modalOverlay .form-grid > .form-group:nth-child(4) { order: 5; }
-    #modalOverlay .form-grid > .form-group:nth-child(5) { order: 6; }
-    #modalOverlay .form-grid > .form-group:nth-child(7) { order: 7; }
   }
 </style>
 </head>
