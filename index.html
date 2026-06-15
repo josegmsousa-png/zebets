@@ -130,11 +130,22 @@
   input, select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; width: 100%; }
   input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
-  /* iOS Safari: native date appearance forces a fixed intrinsic width and ignores
-     width:100%/min-width:0. Stripping -webkit-appearance makes it size like a normal
-     input. min-height stops it collapsing when empty (the iOS appearance:none gotcha). */
-  input[type=date] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; min-height: 38px; }
-  input[type=date]::-webkit-date-and-time-value { text-align: left; }
+  input[type=date] { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  /* Custom mobile date picker — hidden on desktop (native input used there) */
+  .dp-trigger { display: none; }
+  .dp-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 600; display: none; align-items: center; justify-content: center; }
+  .dp-overlay.open { display: flex; }
+  .dp-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-xl); padding: 18px; width: 320px; max-width: 92%; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+  .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .dp-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; }
+  .dp-nav { background: var(--surface2); border: 1px solid var(--border2); color: var(--text); width: 34px; height: 34px; border-radius: 10px; font-size: 18px; cursor: pointer; line-height: 1; font-family: 'DM Sans', sans-serif; }
+  .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .dp-dow { font-size: 10px; text-transform: uppercase; color: var(--muted); text-align: center; padding: 4px 0; letter-spacing: 0.05em; }
+  .dp-day { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 13px; cursor: pointer; color: var(--text); border: 1px solid transparent; }
+  .dp-day.empty { cursor: default; }
+  .dp-day.today { border-color: var(--border2); }
+  .dp-day.selected { background: var(--accent); color: #fff; }
+  .dp-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
   input:focus, select:focus { border-color: var(--accent); }
   select option { background: var(--surface2); color: var(--text); }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.3rem; }
@@ -191,6 +202,10 @@
     .form-group { min-width: 0; }
     .form-group input, .form-group select { min-width: 0; }
     .form-group.full { grid-column: 1 / -1; }
+    /* Swap native date input for custom trigger button on mobile (iOS date widget is broken) */
+    input[type=date] { display: none; }
+    .dp-trigger { display: block; width: 100%; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 14px; font-family: 'DM Sans', sans-serif; text-align: left; cursor: pointer; outline: none; }
+    .dp-trigger:focus { border-color: var(--accent); }
     /* Acca date/stake row: single column */
     #accaModalOverlay .modal > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 
@@ -269,7 +284,8 @@
     <div class="form-grid form-grid-3">
       <div class="form-group">
         <label>Date</label>
-        <input type="date" id="f-date">
+        <input type="date" id="f-date" onchange="syncDateTrigger('f-date')">
+        <button type="button" class="dp-trigger" id="f-date-trigger" onclick="openDatePicker('f-date')"></button>
       </div>
       <div class="form-group">
         <label>Sport</label>
@@ -320,7 +336,8 @@
     <div class="form-grid acca-date-stake">
       <div class="form-group">
         <label>Date</label>
-        <input type="date" id="a-date">
+        <input type="date" id="a-date" onchange="syncDateTrigger('a-date')">
+        <button type="button" class="dp-trigger" id="a-date-trigger" onclick="openDatePicker('a-date')"></button>
       </div>
       <div class="form-group">
         <label>Stake (€)</label>
@@ -370,9 +387,100 @@
     </div>
   </div>
 </div>
+<!-- Custom date picker (mobile) -->
+<div class="dp-overlay" id="dpOverlay">
+  <div class="dp-card">
+    <div class="dp-head">
+      <button type="button" class="dp-nav" onclick="dpNav(-1)">‹</button>
+      <div class="dp-title" id="dpTitle"></div>
+      <button type="button" class="dp-nav" onclick="dpNav(1)">›</button>
+    </div>
+    <div class="dp-grid" id="dpDow"></div>
+    <div class="dp-grid" id="dpDays" style="margin-top:4px;"></div>
+    <div class="dp-actions">
+      <button class="btn-cancel" onclick="closeDatePicker()">Cancel</button>
+    </div>
+  </div>
+</div>
 <script>
 const SUPABASE_URL = 'https://vgsvhixbvosimiemooiw.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnc3ZoaXhidm9zaW1pZW1vb2l3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzMzMTgsImV4cCI6MjA5MjU0OTMxOH0.a3DiUpZUaOEtuEHg66RSKtcXCiHlN6LiRYkx1TFoPss';
+
+/* ---------- Custom mobile date picker ----------
+   The native iOS Safari date widget renders unreliably (overflow / no calendar
+   button), so on mobile we hide it and drive a custom calendar that writes the
+   same ISO (YYYY-MM-DD) value back into the original input. Desktop keeps native. */
+const DP_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DP_DOW = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+let dpTargetId = null;      // the input id we're editing
+let dpView = null;          // {year, month} currently shown
+let dpSelected = null;      // selected ISO string
+
+function formatDisplayDate(iso) {
+  if (!iso) return 'Select date';
+  const [y, m, d] = iso.split('-').map(Number);
+  return d + ' ' + DP_MONTHS[m - 1].slice(0, 3) + ' ' + y;
+}
+
+// Updates the visible trigger button label from the input's current value.
+function syncDateTrigger(id) {
+  const trigger = document.getElementById(id + '-trigger');
+  if (trigger) trigger.textContent = formatDisplayDate(document.getElementById(id).value);
+}
+
+// Sets an ISO date on the input AND refreshes the trigger. Use everywhere we set a date.
+function setDateInput(id, iso) {
+  document.getElementById(id).value = iso;
+  syncDateTrigger(id);
+}
+
+function openDatePicker(id) {
+  dpTargetId = id;
+  const current = document.getElementById(id).value || new Date().toISOString().slice(0, 10);
+  dpSelected = current;
+  const [y, m] = current.split('-').map(Number);
+  dpView = { year: y, month: m - 1 };
+  renderDpCalendar();
+  document.getElementById('dpOverlay').classList.add('open');
+}
+
+function closeDatePicker() {
+  document.getElementById('dpOverlay').classList.remove('open');
+  dpTargetId = null;
+}
+
+function dpNav(delta) {
+  dpView.month += delta;
+  if (dpView.month < 0) { dpView.month = 11; dpView.year--; }
+  else if (dpView.month > 11) { dpView.month = 0; dpView.year++; }
+  renderDpCalendar();
+}
+
+function renderDpCalendar() {
+  document.getElementById('dpTitle').textContent = DP_MONTHS[dpView.month] + ' ' + dpView.year;
+  const dow = document.getElementById('dpDow');
+  dow.innerHTML = DP_DOW.map(d => '<div class="dp-dow">' + d + '</div>').join('');
+
+  const first = new Date(dpView.year, dpView.month, 1);
+  let lead = (first.getDay() + 6) % 7; // Mon=0 ... Sun=6
+  const daysInMonth = new Date(dpView.year, dpView.month + 1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  let cells = '';
+  for (let i = 0; i < lead; i++) cells += '<div class="dp-day empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = dpView.year + '-' + String(dpView.month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const cls = 'dp-day' + (iso === dpSelected ? ' selected' : '') + (iso === todayIso ? ' today' : '');
+    cells += '<div class="' + cls + '" onclick="dpSelect(\'' + iso + '\')">' + d + '</div>';
+  }
+  document.getElementById('dpDays').innerHTML = cells;
+}
+
+function dpSelect(iso) {
+  if (dpTargetId) setDateInput(dpTargetId, iso);
+  closeDatePicker();
+}
+/* ---------- end date picker ---------- */
 
 function sbFetch(path, method='GET', body=null, extraHeaders={}) {
   const headers = {
@@ -1424,7 +1532,7 @@ let editingId = null;
 function openModal() {
   editingId = null;
   document.getElementById('modalTitle').textContent = 'Add New Bet';
-  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  setDateInput('f-date', new Date().toISOString().slice(0,10));
   document.getElementById('f-bet').value = '';
   document.getElementById('f-game').value = '';
   document.getElementById('f-odd').value = '';
@@ -1441,7 +1549,7 @@ function openEditModal(id) {
   editingId = id;
   document.getElementById('modalTitle').textContent = b.acca_id ? 'Edit Acca Leg' : 'Edit Bet';
   const parts = b.date.split('/');
-  document.getElementById('f-date').value = parts[2] + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0');
+  setDateInput('f-date', parts[2] + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0'));
   document.getElementById('f-bet').value = b.bet;
   document.getElementById('f-game').value = b.game === '—' ? '' : b.game;
   document.getElementById('f-odd').value = b.odd;
@@ -1574,7 +1682,7 @@ const collapsedAccas = new Set();
 function openAccaModal() {
   accaLegCount = 0;
   document.getElementById('accaLegs').innerHTML = '';
-  document.getElementById('a-date').value = new Date().toISOString().slice(0,10);
+  setDateInput('a-date', new Date().toISOString().slice(0,10));
   document.getElementById('a-stake').value = '';
   document.getElementById('accaCombinedOdd').textContent = '—';
   document.getElementById('accaPotentialWin').textContent = '—';
