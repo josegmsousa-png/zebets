@@ -99,6 +99,11 @@ Columns: Date | Sport | Bet | Game | Odd | Stake (€) | Outcome | P&L | Actions
 - Acca cards show legs with sport icon + bet + odd + outcome tick
 - Forms: 2-column grid (Date|Sport, Odd|Stake, full-width for Bet/Game)
 - Modals only close via Cancel/Save buttons (not by clicking outside)
+- **Date inputs**: native `<input type=date>` on desktop; on mobile (≤640px) the
+  native input is hidden and a custom calendar popover (`#dpOverlay`) is used instead,
+  because iOS Safari renders `type=date` unreliably (overflow, no calendar button).
+  The picker writes ISO `YYYY-MM-DD` back into the same input, so save logic is unchanged.
+  All date writes go through `setDateInput(id, iso)` to keep the trigger label in sync.
 
 ### Favicon
 - Browser: SVG with dark background, italic gradient Z + orange basketball dot
@@ -196,6 +201,7 @@ All 30 MLB teams
 7. **Fuzzy logo matching min 8 chars** — shorter keys like `'sporting'` match wrong teams
 8. **Acca combined odd rounded to 2dp** — matches Betano's rounding (e.g. 1.25×1.55=1.94 not 1.9375)
 9. **Modal overlays have no onclick close** — removed to prevent accidental close when selecting text
+10. **iOS Safari `input[type=date]` is broken** — overflows its container and ignores width/appearance fixes. Solved with a custom mobile-only calendar (`openDatePicker`/`dpSelect`/`renderDpCalendar`), native input kept for desktop. Don't try to "fix" the native widget on mobile again.
 
 ---
 
