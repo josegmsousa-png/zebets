@@ -130,8 +130,11 @@
   input, select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; width: 100%; }
   input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
-  /* iOS Safari date inputs have a native intrinsic min-width that ignores width:100% */
-  input[type=date] { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  /* iOS Safari: native date appearance forces a fixed intrinsic width and ignores
+     width:100%/min-width:0. Stripping -webkit-appearance makes it size like a normal
+     input. min-height stops it collapsing when empty (the iOS appearance:none gotcha). */
+  input[type=date] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; min-height: 38px; }
+  input[type=date]::-webkit-date-and-time-value { text-align: left; }
   input:focus, select:focus { border-color: var(--accent); }
   select option { background: var(--surface2); color: var(--text); }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.3rem; }
