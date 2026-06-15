@@ -130,6 +130,8 @@
   input, select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; width: 100%; }
   input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
+  /* iOS Safari date inputs have a native intrinsic min-width that ignores width:100% */
+  input[type=date] { min-width: 0; max-width: 100%; box-sizing: border-box; }
   input:focus, select:focus { border-color: var(--accent); }
   select option { background: var(--surface2); color: var(--text); }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.3rem; }
@@ -181,7 +183,7 @@
     .mobile-bets { display: block; }
 
     /* Modal — single column on mobile, full width */
-    .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; }
+    .modal { padding: 1.4rem 1.2rem; width: 96%; max-width: 96%; overflow: hidden; }
     .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
     .form-group { min-width: 0; }
     .form-group input, .form-group select { min-width: 0; }
