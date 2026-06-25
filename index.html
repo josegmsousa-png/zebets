@@ -922,10 +922,11 @@ function render() {
     '<div class="stat-card"><div class="stat-label">Avg Odd</div><div class="stat-value" style="color:var(--amber)">' + avgOddMonth + '</div><div class="stat-sub">' + monthLabel(activeMonth) + '</div><div class="stat-sub" style="margin-top:2px;">' + avgOddAll + ' all time</div></div>';
 
   renderBalanceChart();
-  // Pending = truly unsettled only (no outcome). Pushes are voids → excluded from the
-  // Win/Loss donut entirely, same as they're excluded from the win-rate stat.
+  // Pending = truly unsettled only (no outcome). Pushes are voids → kept out of the
+  // ring (same as the win-rate stat) but counted in the legend so totals reconcile.
   const pendingCount = bets.filter(b => !b.outcome).length;
-  renderDonutChart(wins, losses, pendingCount);
+  const pushedCount = bets.filter(b => b.outcome === 'P').length;
+  renderDonutChart(wins, losses, pendingCount, pushedCount);
   renderTable(bets);
 }
 
@@ -950,8 +951,8 @@ function renderBalanceChart() {
   });
 }
 
-function renderDonutChart(wins, losses, pending) {
-  lastDonutArgs = [wins, losses, pending];
+function renderDonutChart(wins, losses, pending, pushes = 0) {
+  lastDonutArgs = [wins, losses, pending, pushes];
   const settled = wins + losses;
   const wrPct = settled ? ((wins/settled)*100).toFixed(1) : null;
   const pctEl = document.getElementById('wrPct');
@@ -964,8 +965,11 @@ function renderDonutChart(wins, losses, pending) {
     data:{ labels:['Wins','Losses','Pending'], datasets:[{ data:[wins,losses,pending], backgroundColor:['rgba(34,211,163,0.85)','rgba(248,113,113,0.85)','rgba(251,191,36,0.5)'], borderColor:['#22d3a3','#f87171','#fbbf24'], borderWidth:1.5, hoverOffset:6 }] },
     options:{ responsive:true, maintainAspectRatio:false, cutout:'72%', plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a1e2a', borderColor:'rgba(255,255,255,0.1)', borderWidth:1, titleColor:'#9ca3af', bodyColor:'#f0f2f8' } } }
   });
+  const legend = [['Wins ('+wins+')','var(--green)'],['Losses ('+losses+')','var(--red)'],['Pending ('+pending+')','var(--amber)']];
+  // Pushes aren't a ring slice (void = no win/loss), but show a count so the totals reconcile
+  if (pushes > 0) legend.push(['Pushed ('+pushes+')','#94a3b8']);
   document.getElementById('donutLegend').innerHTML =
-    [['Wins ('+wins+')','var(--green)'],['Losses ('+losses+')','var(--red)'],['Pending ('+pending+')','var(--amber)']].map(([l,c])=>
+    legend.map(([l,c])=>
       '<div class="legend-item"><div class="legend-dot" style="background:'+c+'"></div><span style="color:var(--muted2);font-size:13px">'+l+'</span></div>'
     ).join('');
 }
