@@ -922,7 +922,10 @@ function render() {
     '<div class="stat-card"><div class="stat-label">Avg Odd</div><div class="stat-value" style="color:var(--amber)">' + avgOddMonth + '</div><div class="stat-sub">' + monthLabel(activeMonth) + '</div><div class="stat-sub" style="margin-top:2px;">' + avgOddAll + ' all time</div></div>';
 
   renderBalanceChart();
-  renderDonutChart(wins, losses, bets.length - settled.length);
+  // Pending = truly unsettled only (no outcome). Pushes are voids → excluded from the
+  // Win/Loss donut entirely, same as they're excluded from the win-rate stat.
+  const pendingCount = bets.filter(b => !b.outcome).length;
+  renderDonutChart(wins, losses, pendingCount);
   renderTable(bets);
 }
 
