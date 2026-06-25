@@ -114,6 +114,7 @@
   .outcome-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 50px; font-size: 11px; font-weight: 600; }
   .outcome-W { background: var(--green-bg); color: var(--green); }
   .outcome-L { background: var(--red-bg); color: var(--red); }
+  .outcome-P { background: rgba(148,163,184,0.16); color: var(--muted2); }
   .outcome-pending { background: rgba(251,191,36,0.12); color: var(--amber); }
   .delete-row-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 3px 6px; border-radius: 6px; transition: color 0.15s, background 0.15s; font-family: 'DM Sans', sans-serif; }
   .delete-row-btn:hover { color: var(--red); background: var(--red-bg); }
@@ -319,6 +320,7 @@
           <option value="">Pending</option>
           <option value="W">Win (W)</option>
           <option value="L">Loss (L)</option>
+          <option value="P">Push / Draw (P)</option>
         </select>
       </div>
     </div>
@@ -638,11 +640,11 @@ function computeDailyBalances(monthKey) {
       if (b.acca_id) {
         if (b.acca_leg === 1) {
           const stake = b.acca_stake || b.stake;
-          const combinedOdd = parseFloat((b.acca_combined_odd || b.odd).toFixed(2));
           // Acca outcome is derived from all legs, never leg 1's own outcome
           const accaOutcome = getAccaOutcome(b.acca_id);
-          if (accaOutcome === 'W') dayPnl += stake * combinedOdd - stake;
+          if (accaOutcome === 'W') dayPnl += stake * getAccaCombinedOdd(b.acca_id) - stake;
           else if (accaOutcome === 'L') dayPnl -= stake;
+          else if (accaOutcome === 'P') { /* push — stake returned, no change */ }
           else dayPnl -= stake; // pending
         }
         // skip legs 2, 3, etc — already handled by leg 1
@@ -650,6 +652,7 @@ function computeDailyBalances(monthKey) {
         // Regular single bet
         if (b.outcome === 'W') dayPnl += b.stake * b.odd - b.stake;
         else if (b.outcome === 'L') dayPnl -= b.stake;
+        else if (b.outcome === 'P') { /* push — stake returned, no change */ }
         else dayPnl -= b.stake; // pending
       }
     }
@@ -1292,12 +1295,21 @@ function gameLogos(gameStr, sport) {
   '</div>';
 }
 
+// Centralized outcome badge so every render site handles W / L / P / pending identically
+function outcomeBadge(o) {
+  if (o === 'W') return '<span class="outcome-badge outcome-W">W</span>';
+  if (o === 'L') return '<span class="outcome-badge outcome-L">L</span>';
+  if (o === 'P') return '<span class="outcome-badge outcome-P">P</span>';
+  return '<span class="outcome-badge outcome-pending">—</span>';
+}
+
 function betPnl(b) {
   if (!b.outcome) return '<span style="color:var(--muted);font-size:12px;">—</span>';
   if (b.outcome === 'W') {
     const profit = parseFloat(((b.stake * b.odd) - b.stake).toFixed(2));
     return '<span style="color:var(--green);font-weight:600;font-size:13px;">+€' + profit.toFixed(2) + '</span>';
   }
+  if (b.outcome === 'P') return '<span style="color:var(--muted2);font-weight:600;font-size:13px;">€0.00</span>';
   return '<span style="color:var(--red);font-weight:600;font-size:13px;">−€' + b.stake.toFixed(2) + '</span>';
 }
 
@@ -1310,9 +1322,7 @@ function sportIcon(sport) {
 }
 
 function betRow(b, hideGame) {
-  const badge = b.outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-    : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-    : '<span class="outcome-badge outcome-pending">—</span>';
+  const badge = outcomeBadge(b.outcome);
   const gameCell = hideGame
     ? '<td style="color:var(--muted);font-size:12px;padding-left:28px;">↳ same game</td>'
     : '<td>' + gameLogos(b.game, b.sport) + '</td>';
@@ -1367,15 +1377,14 @@ function renderTable(bets) {
       const legs = sorted.filter(x => x.acca_id === b.acca_id);
       legs.forEach(l => rendered.add(l.id));
 
-      const combinedOdd = parseFloat((b.acca_combined_odd || legs.reduce((p,l) => p*l.odd,1)).toFixed(2));
+      const combinedOdd = getAccaCombinedOdd(b.acca_id);
       const stake = b.acca_stake || b.stake;
       const outcome = getAccaOutcome(b.acca_id);
       const foldName = legs.length === 2 ? 'Double' : legs.length === 3 ? 'Treble' : legs.length + '-Fold';
-      const badge = outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-        : outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-        : '<span class="outcome-badge outcome-pending">—</span>';
+      const badge = outcomeBadge(outcome);
       const pnl = !outcome ? '<span style="color:var(--muted);font-size:12px;">—</span>'
         : outcome==='W' ? '<span style="color:var(--green);font-weight:600;">+€'+(stake*combinedOdd-stake).toFixed(2)+'</span>'
+        : outcome==='P' ? '<span style="color:var(--muted2);font-weight:600;">€0.00</span>'
         : '<span style="color:var(--red);font-weight:600;">−€'+parseFloat(stake).toFixed(2)+'</span>';
 
       const totalRows = 1 + legs.length;
@@ -1396,10 +1405,7 @@ function renderTable(bets) {
       // Leg rows — date empty, only Bet column indented
       legs.forEach((leg, i) => {
         const isLast = i === legs.length - 1;
-        const legOutcome = leg.outcome;
-        const legBadge = legOutcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-          : legOutcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-          : '<span class="outcome-badge outcome-pending">—</span>';
+        const legBadge = outcomeBadge(leg.outcome);
         const pt = 'padding-top:2px;';
         const pb = isLast ? 'padding-bottom:9px;' : 'padding-bottom:2px;';
         const border = isLast ? '' : 'border-bottom:none;';
@@ -1435,21 +1441,21 @@ function renderTable(bets) {
       const legs = sorted.filter(x => x.acca_id === b.acca_id);
       legs.forEach(l => mobileRendered.add(l.id));
 
-      const combinedOdd = parseFloat((b.acca_combined_odd || legs.reduce((p,l) => p*l.odd,1)).toFixed(2));
+      const combinedOdd = getAccaCombinedOdd(b.acca_id);
       const stake = b.acca_stake || b.stake;
       const outcome = getAccaOutcome(b.acca_id);
       const foldName = legs.length === 2 ? 'Double' : legs.length === 3 ? 'Treble' : legs.length + '-Fold';
-      const badge = outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-        : outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-        : '<span class="outcome-badge outcome-pending">—</span>';
+      const badge = outcomeBadge(outcome);
       const pnl = !outcome ? '<span style="color:var(--muted);font-size:12px;">—</span>'
         : outcome==='W' ? '<span style="color:var(--green);font-weight:600;">+€'+(stake*combinedOdd-stake).toFixed(2)+'</span>'
+        : outcome==='P' ? '<span style="color:var(--muted2);font-weight:600;">€0.00</span>'
         : '<span style="color:var(--red);font-weight:600;">−€'+parseFloat(stake).toFixed(2)+'</span>';
 
       const legsHtml = legs.map(leg => {
         const lo = leg.outcome;
         const tick = lo==='W' ? '<span style="color:var(--green);font-weight:700;">✓</span>'
           : lo==='L' ? '<span style="color:var(--red);font-weight:700;">✗</span>'
+          : lo==='P' ? '<span style="color:var(--muted2);font-weight:700;">P</span>'
           : '<span style="color:var(--muted);">—</span>';
         const lp = (leg.game || '').split(/\s[-–—]\s|\svs\.?\s/i);
         const legLogos = lp.length >= 2
@@ -1484,9 +1490,7 @@ function renderTable(bets) {
 
     } else {
       mobileRendered.add(b.id);
-      const badge = b.outcome==='W' ? '<span class="outcome-badge outcome-W">W</span>'
-        : b.outcome==='L' ? '<span class="outcome-badge outcome-L">L</span>'
-        : '<span class="outcome-badge outcome-pending">—</span>';
+      const badge = outcomeBadge(b.outcome);
       const parts = b.game.split(/\s[-–—]\s|\svs\.?\s/i);
       let gameLine;
       if (parts.length >= 2) {
@@ -1827,9 +1831,18 @@ async function setLegOutcome(legId, outcome) {
 function getAccaOutcome(accaId) {
   const legs = allBets.filter(b => b.acca_id === accaId);
   if (!legs.length) return '';
-  if (legs.every(l => l.outcome === 'W')) return 'W';
-  if (legs.some(l => l.outcome === 'L')) return 'L';
-  return ''; // pending if any leg still pending
+  if (legs.some(l => l.outcome === 'L')) return 'L';     // any losing leg loses the whole acca
+  if (legs.some(l => !l.outcome)) return '';             // any leg still pending → pending
+  if (legs.every(l => l.outcome === 'P')) return 'P';    // every leg void → whole acca pushes
+  return 'W'; // remaining settled legs all won (pushed legs void out of the multiple)
+}
+
+// Effective combined odd: pushed/void legs drop out (count as odd 1.00). Equals the
+// stored combined odd when no leg is pushed, so existing accas are unaffected.
+function getAccaCombinedOdd(accaId) {
+  const legs = allBets.filter(b => b.acca_id === accaId);
+  const odd = legs.filter(l => l.outcome !== 'P').reduce((p, l) => p * l.odd, 1);
+  return parseFloat(odd.toFixed(2));
 }
 
 async function setAccaOutcome(accaId, outcome) {
