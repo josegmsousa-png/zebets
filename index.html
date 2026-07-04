@@ -550,6 +550,26 @@ function saveSeedBalance() {
   try { localStorage.setItem('zbSeedBalance', JSON.stringify(SEED_BALANCE)); } catch(e) {}
 }
 
+// Rebuild SEED_BALANCE from the synced source of truth: month placeholder rows in
+// Supabase (their `stake` holds the seed). Falls back to hardcoded defaults for the
+// original months. One-time migration: if a placeholder still has no seed (legacy 0)
+// but this device has one in localStorage, push it up so every device converges.
+async function rebuildSeedBalance() {
+  let local = {};
+  try { local = JSON.parse(localStorage.getItem('zbSeedBalance') || '{}'); } catch(e) {}
+  SEED_BALANCE = { ...SEED_DEFAULTS, ...local };
+  const placeholders = allBets.filter(b => b.bet === '__month_placeholder__');
+  for (const p of placeholders) {
+    if (p.stake > 0) {
+      SEED_BALANCE[p.date] = p.stake;            // DB is the source of truth
+    } else if (local[p.date] > 0) {
+      SEED_BALANCE[p.date] = local[p.date];      // legacy local-only value → migrate up
+      try { await dbUpdate(p.id, { stake: local[p.date] }); p.stake = local[p.date]; } catch(e) {}
+    }
+  }
+  saveSeedBalance();
+}
+
 const INITIAL_DATA = [
   {date:"4/3/2026",bet:"San Antonio Spurs",game:"Los Angeles Clippers - San Antonio Spurs",odd:2.07,stake:10.00,outcome:"W",sport:"basketball"},
   {date:"4/3/2026",bet:"Minnesota Timberwolves",game:"Philadelphia 76ers - Minnesota Timberwolves",odd:2.35,stake:15.70,outcome:"L",sport:"basketball"},
@@ -686,6 +706,7 @@ async function loadFromDB() {
     console.error('Supabase error:', e);
     allBets = INITIAL_DATA;
   }
+  await rebuildSeedBalance();
   setLoading(100);
   render();
 }
@@ -695,7 +716,7 @@ async function refreshData() {
   btn.style.transform = 'rotate(360deg)';
   setTimeout(() => btn.style.transform = '', 500);
   setLoading(30);
-  try { allBets = await dbGetAll(); } catch(e) { console.error(e); }
+  try { allBets = await dbGetAll(); await rebuildSeedBalance(); } catch(e) { console.error(e); }
   setLoading(100);
   render();
 }
@@ -805,10 +826,10 @@ async function confirmSeedModal() {
   const [y, m] = key.split('-').map(Number);
   SEED_BALANCE[m + '/1/' + y] = amount;
   saveSeedBalance();
-  await addMonth(key);
+  await addMonth(key, amount);
 }
 
-async function addMonth(key) {
+async function addMonth(key, seedAmount = 0) {
   const months = getMonths();
   if (!months.includes(key)) {
     const [y, m] = key.split('-').map(Number);
@@ -817,7 +838,7 @@ async function addMonth(key) {
       bet: '__month_placeholder__',
       game: '—',
       odd: 0,
-      stake: 0,
+      stake: seedAmount, // seed balance stored here so it syncs across devices via Supabase
       outcome: '',
       sport: 'basketball'
     };
