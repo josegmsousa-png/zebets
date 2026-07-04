@@ -47,11 +47,17 @@ bets (
 
 ## Seed Balances
 ```js
-const SEED_BALANCE = { "4/2/2026": 35.0, "5/1/2026": 30.0, "6/1/2026": 30.0 };
+const SEED_DEFAULTS = { "4/2/2026": 35.0, "5/1/2026": 30.0, "6/1/2026": 30.0 };
 ```
-- April started at €35, May at €30, June at €30
-- Total invested: €95
-- Each month shows "Started at €X · Total €95"
+- April started at €35, May at €30, June at €30 (hardcoded defaults for the original months)
+- Each month shows "Started at €X · Total €Y" (Y = sum of all seeds)
+- **Seeds sync across devices via Supabase.** A month's seed is stored in that month's
+  `__month_placeholder__` row (`stake` field), which already syncs and is filtered out of
+  every stat. `rebuildSeedBalance()` rebuilds `SEED_BALANCE` from those rows on load/refresh,
+  falling back to `SEED_DEFAULTS`. localStorage (`zbSeedBalance`) is now only a cache + the
+  migration source (legacy placeholders with stake 0 get upgraded from localStorage and
+  pushed to the DB). **Don't reintroduce localStorage as the source of truth** — that caused
+  PC/mobile Current-Balance mismatches.
 
 ---
 
