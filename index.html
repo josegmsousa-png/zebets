@@ -300,7 +300,7 @@
       </div>
       <div class="form-group">
         <label>Odd</label>
-        <input type="number" id="f-odd" step="0.01" placeholder="1.75">
+        <input type="number" id="f-odd" step="0.001" placeholder="1.750">
       </div>
       <div class="form-group full">
         <label>Bet / Selection</label>
@@ -878,7 +878,7 @@ function render() {
   for (const b of allUpToNow) {
     if (b.acca_id && b.acca_leg !== 1) continue; // skip non-first acca legs
     const stake = b.acca_id ? (b.acca_stake || b.stake) : b.stake;
-    const odd = b.acca_id ? parseFloat((b.acca_combined_odd || b.odd).toFixed(2)) : b.odd;
+    const odd = b.acca_id ? parseFloat((b.acca_combined_odd || b.odd).toFixed(3)) : b.odd;
     if (b.outcome === 'W' || b.outcome === 'L') {
       totalStakeAll += stake;
       if (b.outcome === 'W') totalReturnAll += stake * odd;
@@ -911,7 +911,7 @@ function render() {
   let monthStake = 0, monthReturn = 0;
   for (const mb of settledMonthBets) {
     const mStake = mb.acca_id ? (mb.acca_stake||mb.stake) : mb.stake;
-    const mOdd = mb.acca_id ? parseFloat((mb.acca_combined_odd||mb.odd).toFixed(2)) : mb.odd;
+    const mOdd = mb.acca_id ? parseFloat((mb.acca_combined_odd||mb.odd).toFixed(3)) : mb.odd;
     const mOutcome = mb.acca_id ? getAccaOutcome(mb.acca_id) : mb.outcome;
     monthStake += mStake;
     if (mOutcome === 'W') monthReturn += mStake * mOdd;
@@ -921,9 +921,9 @@ function render() {
   const roiMonthDisplay = roiMonth !== null ? (roiMonth >= 0 ? '+' : '') + roiMonth.toFixed(1) + '%' : '—';
   const roiMonthColor = roiMonth === null ? 'var(--muted2)' : roiMonth >= 0 ? 'var(--green)' : 'var(--red)';
   const monthBetsForAvg = bets.filter(b => !b.acca_id || b.acca_leg===1);
-  const avgOddMonth = monthBetsForAvg.length ? (monthBetsForAvg.reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/monthBetsForAvg.length).toFixed(2) : '—';
+  const avgOddMonth = monthBetsForAvg.length ? (monthBetsForAvg.reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/monthBetsForAvg.length).toFixed(3) : '—';
   const totalBetsCount = allUpToNow.filter(b => !b.acca_id || b.acca_leg===1).length;
-  const avgOddAll = totalBetsCount ? (allUpToNow.filter(b=>!b.acca_id||b.acca_leg===1).reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/totalBetsCount).toFixed(2) : '—';
+  const avgOddAll = totalBetsCount ? (allUpToNow.filter(b=>!b.acca_id||b.acca_leg===1).reduce((s,b)=>s+(b.acca_id?b.acca_combined_odd||b.odd:b.odd),0)/totalBetsCount).toFixed(3) : '—';
 
   // Month-only W/L for donut
   const settled = bets.filter(b => b.outcome === 'W' || b.outcome === 'L');
@@ -1359,7 +1359,7 @@ function betRow(b, hideGame) {
     '<td>' + sportIcon(b.sport) + '</td>' +
     '<td style="font-weight:500">' + b.bet + '</td>' +
     gameCell +
-    '<td style="color:var(--amber)">' + b.odd.toFixed(2) + '</td>' +
+    '<td style="color:var(--amber)">' + b.odd.toFixed(3) + '</td>' +
     '<td>€' + b.stake.toFixed(2) + '</td>' +
     '<td>' + badge + '</td>' +
     '<td>' + betPnl(b) + '</td>' +
@@ -1423,7 +1423,7 @@ function renderTable(bets) {
         <td style="padding-bottom:2px;"><span class="acca-badge">⚡</span></td>
         <td style="font-weight:500;color:var(--text);padding-bottom:2px;">${foldName}</td>
         <td style="padding-bottom:2px;"></td>
-        <td style="color:var(--amber);font-weight:700;padding-bottom:2px;">${combinedOdd.toFixed(2)}</td>
+        <td style="color:var(--amber);font-weight:700;padding-bottom:2px;">${combinedOdd.toFixed(3)}</td>
         <td style="padding-bottom:2px;">€${parseFloat(stake).toFixed(2)}</td>
         <td style="padding-bottom:2px;">${badge}</td>
         <td style="padding-bottom:2px;">${pnl}</td>
@@ -1442,7 +1442,7 @@ function renderTable(bets) {
           <td style="${pt}${pb}">${sportIcon(leg.sport)}</td>
           <td style="${pt}${pb}padding-left:14px;color:var(--muted2);font-size:13px;"><span style="color:var(--amber);margin-right:5px;">›</span>${leg.bet}</td>
           <td style="${pt}${pb}">${gameLogos(leg.game, leg.sport)}</td>
-          <td style="${pt}${pb}color:var(--muted);font-size:12px;">${leg.odd.toFixed(2)}</td>
+          <td style="${pt}${pb}color:var(--muted);font-size:12px;">${leg.odd.toFixed(3)}</td>
           <td style="${pt}${pb}color:var(--muted);font-size:12px;">—</td>
           <td style="${pt}${pb}">${legBadge}</td>
           <td style="${pt}${pb}color:var(--muted);font-size:12px;">—</td>
@@ -1492,7 +1492,7 @@ function renderTable(bets) {
         return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border);">
           ${sportIcon(leg.sport)}
           ${legLogos}
-          <span style="flex:1;font-size:12px;color:var(--muted2);">${leg.bet} <span style="color:var(--muted);font-size:11px;">· ${leg.odd.toFixed(2)}</span></span>
+          <span style="flex:1;font-size:12px;color:var(--muted2);">${leg.bet} <span style="color:var(--muted);font-size:11px;">· ${leg.odd.toFixed(3)}</span></span>
           <span style="font-size:13px;">${tick}</span>
           <button class="delete-row-btn" onclick="openEditModal('${leg.id}')" style="color:var(--muted);font-size:13px;">✎</button>
         </div>`;
@@ -1511,7 +1511,7 @@ function renderTable(bets) {
         </div>
         ${legsHtml}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid var(--border);">
-          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber);">${combinedOdd.toFixed(2)}</strong> · €${parseFloat(stake).toFixed(2)}</span>
+          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber);">${combinedOdd.toFixed(3)}</strong> · €${parseFloat(stake).toFixed(2)}</span>
           ${pnl}
         </div>
       </div>`;
@@ -1543,7 +1543,7 @@ function renderTable(bets) {
           </div>
         </div>
         <div class="bet-card-mobile-bottom">
-          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber)">${b.odd.toFixed(2)}</strong> · €${b.stake.toFixed(2)}</span>
+          <span style="font-size:12px;color:var(--muted);">Odd <strong style="color:var(--amber)">${b.odd.toFixed(3)}</strong> · €${b.stake.toFixed(2)}</span>
           ${betPnl(b)}
         </div>
       </div>`;
@@ -1636,7 +1636,7 @@ async function saveBet() {
       if (isAccaLeg) {
         const accaId = existing.acca_id;
         const legs = allBets.filter(b => b.acca_id === accaId);
-        const newCombinedOdd = parseFloat(legs.reduce((p,l) => p * l.odd, 1).toFixed(4));
+        const newCombinedOdd = parseFloat(legs.reduce((p,l) => p * l.odd, 1).toFixed(3));
 
         for (const leg of legs) {
           const legIdx = allBets.findIndex(b => b.id === leg.id);
@@ -1743,7 +1743,7 @@ function addAccaLeg() {
     '</select>' +
     '<input type="text" placeholder="Selection" id="leg-bet-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
     '<input type="text" placeholder="Game" id="leg-game-'+id+'" style="padding:7px 10px;font-size:13px;">' +
-    '<input type="number" step="0.01" placeholder="Odd" id="leg-odd-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
+    '<input type="number" step="0.001" placeholder="Odd" id="leg-odd-'+id+'" oninput="updateAccaSummary()" style="padding:7px 10px;font-size:13px;">' +
     '<button onclick="removeLeg('+id+')" style="background:var(--red-bg);border:none;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
   document.getElementById('accaLegs').appendChild(div);
   updateAccaSummary();
@@ -1765,9 +1765,9 @@ function updateAccaSummary() {
     if (!isNaN(odd) && odd > 0) combined *= odd;
     else allValid = false;
   });
-  const roundedCombined = Math.round(combined * 100) / 100;
+  const roundedCombined = Math.round(combined * 1000) / 1000;
   const stake = parseFloat(document.getElementById('a-stake')?.value);
-  document.getElementById('accaCombinedOdd').textContent = legs.length && allValid ? roundedCombined.toFixed(2) : '—';
+  document.getElementById('accaCombinedOdd').textContent = legs.length && allValid ? roundedCombined.toFixed(3) : '—';
   document.getElementById('accaPotentialWin').textContent = (legs.length && allValid && !isNaN(stake)) ? '€' + (stake * roundedCombined).toFixed(2) : '—';
 }
 
@@ -1798,7 +1798,7 @@ async function saveAcca() {
     const accaId = 'acca-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
     const d = new Date(date);
     const formatted = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
-    const combinedOdd = Math.round(legs.reduce((p,l) => p * l.odd, 1) * 100) / 100;
+    const combinedOdd = Math.round(legs.reduce((p,l) => p * l.odd, 1) * 1000) / 1000;
 
     for (let i = 0; i < legs.length; i++) {
       const entry = {
@@ -1870,7 +1870,7 @@ function getAccaOutcome(accaId) {
 function getAccaCombinedOdd(accaId) {
   const legs = allBets.filter(b => b.acca_id === accaId);
   const odd = legs.filter(l => l.outcome !== 'P').reduce((p, l) => p * l.odd, 1);
-  return parseFloat(odd.toFixed(2));
+  return parseFloat(odd.toFixed(3));
 }
 
 async function setAccaOutcome(accaId, outcome) {
