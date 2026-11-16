@@ -147,6 +147,7 @@
   .dp-day.today { border-color: var(--border2); }
   .dp-day.selected { background: var(--accent); color: #fff; }
   .dp-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+  @keyframes ocrspin { to { transform: rotate(360deg); } }
   input:focus, select:focus { border-color: var(--accent); }
   select option { background: var(--surface2); color: var(--text); }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.3rem; }
@@ -263,10 +264,12 @@
   <div class="bets-card">
     <div class="bets-header">
       <div class="bets-title">Bet History</div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="add-btn" style="background:var(--surface2);color:var(--accent);border:1px solid var(--border2);" onclick="document.getElementById('importFile').click()" title="Import a bet from a screenshot"><span class="plus-icon" style="background:rgba(108,99,255,0.18);">📷</span> Import</button>
         <button class="add-btn" style="background:linear-gradient(135deg,#6c63ff,#22d3a3);border:none;" onclick="openAccaModal()"><span class="plus-icon" style="background:rgba(255,255,255,0.2);">⚡</span> Add Acca</button>
         <button class="add-btn" onclick="openModal()"><span class="plus-icon">+</span> Add Bet</button>
       </div>
+      <input type="file" id="importFile" accept="image/*" style="display:none" onchange="handleImportFile(event)">
     </div>
     <div class="table-wrap">
       <table>
@@ -387,6 +390,14 @@
       <button class="btn-cancel" onclick="closeSeedModal()">Cancel</button>
       <button class="btn-save" onclick="confirmSeedModal()">Start Month</button>
     </div>
+  </div>
+</div>
+<!-- OCR import progress overlay -->
+<div id="ocrOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:700;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-xl);padding:26px 30px;text-align:center;max-width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="width:34px;height:34px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:ocrspin 0.8s linear infinite;"></div>
+    <div id="ocrStatus" style="font-size:14px;color:var(--text);font-weight:500;">Reading screenshot…</div>
+    <div id="ocrProgress" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
   </div>
 </div>
 <!-- Custom date picker (mobile) -->
@@ -1560,6 +1571,139 @@ async function deleteBet(id) {
 }
 
 let editingId = null;
+
+/* ---------- Import a bet from a screenshot (on-device OCR, nothing leaves the device) ---------- */
+function loadTesseract() {
+  return new Promise((resolve, reject) => {
+    if (window.Tesseract) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Could not load the OCR reader (check your connection).'));
+    document.head.appendChild(s);
+  });
+}
+function showOcr(status) {
+  document.getElementById('ocrStatus').textContent = status;
+  document.getElementById('ocrProgress').textContent = '';
+  document.getElementById('ocrOverlay').style.display = 'flex';
+}
+function hideOcr() { document.getElementById('ocrOverlay').style.display = 'none'; }
+
+async function handleImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // allow re-picking the same file later
+  if (!file) return;
+  showOcr('Loading reader…');
+  try {
+    await loadTesseract();
+    showOcr('Reading screenshot…');
+    const { data } = await Tesseract.recognize(file, 'eng', {
+      logger: m => { if (m.status === 'recognizing text') document.getElementById('ocrProgress').textContent = Math.round(m.progress*100) + '%'; }
+    });
+    hideOcr();
+    openImportReview(parseBetSlip(data.text || ''));
+  } catch (err) {
+    hideOcr();
+    alert('Could not read the screenshot: ' + (err.message || err));
+  }
+}
+
+// Normalize for team matching: strip accents and drop single-char junk tokens (avatar
+// icons / stray digits that OCR inserts between words), so "Washington 4 _ Wizards"
+// collapses back to "washington wizards".
+function normalizeForTeams(text) {
+  return text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .split(/[^a-z0-9]+/).filter(w => w.length > 1).join(' ');
+}
+
+// Title-case a normalized team key ("philadelphia 76ers" -> "Philadelphia 76ers")
+function titleTeam(key) {
+  return key.split(' ').map(w => /^[a-z]/.test(w) ? w[0].toUpperCase() + w.slice(1) : w).join(' ');
+}
+
+// Find the two team names present in the OCR text, by matching the app's own logo maps
+function matchTeams(norm, sport) {
+  const bySport = { basketball:[NBA_LOGOS], nfl:[NFL_LOGOS], mlb:[MLB_LOGOS], soccer:[SOCCER_LOGOS] };
+  const maps = (bySport[sport] || []).concat([NBA_LOGOS, NFL_LOGOS, MLB_LOGOS, SOCCER_LOGOS, COUNTRY_FLAGS, EMBEDDED_LOGOS]);
+  const found = [];
+  const seenKey = new Set();
+  for (const map of maps) {
+    for (const key of Object.keys(map)) {
+      if (key.length < 5 || seenKey.has(key)) continue;
+      const idx = norm.indexOf(key);
+      if (idx !== -1) { seenKey.add(key); found.push({ key, idx, val: map[key] }); }
+    }
+  }
+  found.sort((a,b) => a.idx - b.idx);
+  // keep first two distinct teams (dedupe aliases that resolve to the same logo)
+  const picked = [];
+  for (const f of found) {
+    if (picked.some(p => p.val === f.val)) continue;
+    // skip a key fully contained in one already picked at the same spot (substring aliases)
+    if (picked.some(p => Math.abs(p.idx - f.idx) < 3)) continue;
+    picked.push(f);
+    if (picked.length === 2) break;
+  }
+  return picked;
+}
+
+function parseSelection(text, teams) {
+  const t = text.toLowerCase();
+  if (/\bw2\b/.test(t) && teams[1]) return titleTeam(teams[1].key) + ' ML';
+  if (/\bw1\b/.test(t) && teams[0]) return titleTeam(teams[0].key) + ' ML';
+  let m = text.match(/\b(under|over)\b[^\d]*(\d+(?:[.,]\d+)?)/i);
+  if (m) return (/under/i.test(m[1]) ? 'Under ' : 'Over ') + m[2].replace(',', '.');
+  m = text.match(/handicap[^\d+\-]*(h?[12])?[^\d+\-]*([+\-]?\d+(?:[.,]\d+)?)/i);
+  if (m && m[2]) {
+    const side = /1/.test(m[1] || '') ? teams[0] : teams[1];
+    if (side) return titleTeam(side.key) + ' ' + m[2].replace(',', '.');
+  }
+  const line = text.split('\n').map(s => s.trim())
+    .find(s => /team wins|\bwins\b|total|handicap|double chance|draw|both teams/i.test(s) && s.length < 60);
+  return line ? line.replace(/\s+\d+[.,]\d+\s*$/, '').trim() : '';
+}
+
+function parseBetSlip(raw) {
+  const text = (raw || '').replace(/ /g, ' ');
+  const out = { date:null, sport:null, bet:null, game:null, odd:null, stake:null };
+
+  let m = text.match(/odds?\s*[:\-]?\s*(\d+[.,]\d{2,3})/i);
+  if (m) out.odd = parseFloat(m[1].replace(',', '.'));
+
+  m = text.match(/\bbet\s*[:\-]\s*(\d+[.,]\d{1,2})/i) || text.match(/\bstake\s*[:\-]?\s*(\d+[.,]\d{1,2})/i);
+  if (m) out.stake = parseFloat(m[1].replace(',', '.'));
+
+  if (/basketball|\bnba\b|euroleague/i.test(text)) out.sport = 'basketball';
+  else if (/american football|\bnfl\b/i.test(text)) out.sport = 'nfl';
+  else if (/baseball|\bmlb\b/i.test(text)) out.sport = 'mlb';
+  else if (/soccer|football|futebol|f[uü]ssball/i.test(text)) out.sport = 'soccer';
+  else out.sport = 'other';
+
+  const teams = matchTeams(normalizeForTeams(text), out.sport);
+  if (teams.length >= 2) out.game = titleTeam(teams[0].key) + ' - ' + titleTeam(teams[1].key);
+
+  const dates = [...text.matchAll(/(\d{2})[.\/](\d{2})[.\/](\d{4})/g)];
+  if (dates.length) {
+    const d = dates.length >= 2 ? dates[1] : dates[0]; // prefer the event (match) date over the placement date
+    out.date = d[3] + '-' + d[2] + '-' + d[1];
+  }
+
+  out.bet = parseSelection(text, teams);
+  return out;
+}
+
+function openImportReview(p) {
+  openModal();
+  if (p.date) setDateInput('f-date', p.date);
+  if (p.sport) document.getElementById('f-sport').value = p.sport;
+  if (p.bet) document.getElementById('f-bet').value = p.bet;
+  if (p.game) document.getElementById('f-game').value = p.game;
+  if (p.odd != null) document.getElementById('f-odd').value = p.odd;
+  if (p.stake != null) document.getElementById('f-stake').value = p.stake;
+  document.getElementById('modalTitle').textContent = 'Review imported bet';
+}
+/* ---------- end screenshot import ---------- */
 
 function openModal() {
   editingId = null;
