@@ -111,6 +111,18 @@ Columns: Date | Sport | Bet | Game | Odd | Stake (€) | Outcome | P&L | Actions
   The picker writes ISO `YYYY-MM-DD` back into the same input, so save logic is unchanged.
   All date writes go through `setDateInput(id, iso)` to keep the trigger label in sync.
 
+### Import from Screenshot (on-device OCR)
+- "📷 Import" button in the Bet History header → file picker → reads a bookmaker bet-slip
+  screenshot with **Tesseract.js** (loaded lazily from CDN on first use only).
+- `parseBetSlip(text)` extracts odds, stake, date (prefers the event/match date over the
+  placement date), sport and teams, then opens the Add Bet modal pre-filled ("Review
+  imported bet") so the user confirms before saving. **Nothing leaves the device; no API key.**
+- Teams matched against the app's own logo maps via `normalizeForTeams()` (drops single-char
+  OCR junk like avatar icons/stray digits between words). Market interpreted: W1/W2 → team ML,
+  Under/Over totals, handicaps; else raw selection text.
+- OCR is best-effort — the review step is the safety net. Different bookmakers/bet types may
+  need parser tweaks.
+
 ### Favicon
 - Browser: SVG with dark background, italic gradient Z + orange basketball dot
 - iOS: PNG 180×180 rendered version (same design)
